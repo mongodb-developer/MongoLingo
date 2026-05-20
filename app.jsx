@@ -1,0 +1,180 @@
+/* MongoLingo — root App. State, persistence, view routing. */
+
+const { useState: useState_, useEffect: useEffect_, useMemo: useMemo_ } = React;
+
+const STORAGE_KEY = 'mongolingo.progress.v1';
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultProgress();
+    const parsed = JSON.parse(raw);
+    return { ...defaultProgress(), ...parsed };
+  } catch (e) {
+    return defaultProgress();
+  }
+}
+function defaultProgress() {
+  // Seed: world 1 levels 1-2 cleared with no leaves (so the world map looks lived-in).
+  return {
+    progress: {
+      'docs:d1': { done: true, leaf: true  },
+      'docs:d2': { done: true, leaf: false }
+    },
+    xp: 110,
+    streak: 4,
+    leaves: 1
+  };
+}
+function saveProgress(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(/*EDITMODE-BEGIN*/{
+    "accent": "#00ED64",
+    "showHints": true,
+    "denseMap":  false,
+    "unlockAllLevels": false
+  }/*EDITMODE-END*/);
+
+  const [state, setState] = useState_(loadProgress());
+  const [view, setView]   = useState_({ name: 'home' });
+  const [celebrate, setCelebrate] = useState_(null); // { xp, leaf, perfect }
+  const [industryId, setIndustryId] = useState_(() => {
+    try { return localStorage.getItem('mongolingo.industry') || 'general'; } catch(e) { return 'general'; }
+  });
+
+  // When industry changes, swap active WORLDS/HINTS synchronously (useMemo runs during render)
+  useMemo_(() => {
+    const pack = window.MONGOLINGO_INDUSTRIES[industryId];
+    if (pack) {
+      window.WORLDS = pack.worlds;
+      window.HINTS = pack.hints || window.HINTS;
+    }
+    try { localStorage.setItem('mongolingo.industry', industryId); } catch(e) {}
+  }, [industryId]);
+
+  // Persist
+  useEffect_(() => { saveProgress(state); }, [state]);
+
+  // Apply tweak accent
+  useEffect_(() => {
+    document.documentElement.style.setProperty('--lg-spring', tweaks.accent || '#00ED64');
+  }, [tweaks.accent]);
+
+  function completeLevel({ worldId, levelId, xp, leaf }) {
+    setState(prev => {
+      const key = `${worldId}:${levelId}`;
+      const wasDone = prev.progress[key]?.done;
+      const next = {
+        ...prev,
+        progress: {
+          ...prev.progress,
+          [key]: { done: true, leaf: leaf || prev.progress[key]?.leaf }
+        },
+        xp:     prev.xp     + (wasDone ? 0 : xp),
+        leaves: prev.leaves + (leaf && !prev.progress[key]?.leaf ? 1 : 0)
+      };
+      return next;
+    });
+    setCelebrate({ xp, leaf, perfect: leaf });
+    setTimeout(() => setCelebrate(null), 1900);
+  }
+
+  const hud = {
+    xp: state.xp,
+    streak: state.streak,
+    leaves: state.leaves
+  };
+
+  let screen;
+  switch (view.name) {
+    case 'home':
+      screen = <HomeScreen progress={state.progress} setView={setView} totalXp={state.xp} debugUnlockAll={!!tweaks.unlockAllLevels} industryId={industryId} setIndustryId={setIndustryId} />;
+      break;
+    case 'level':
+      screen = <LevelScreen
+                 worldId={view.worldId} levelId={view.levelId}
+                 setView={setView}
+                 onComplete={completeLevel}
+                 progress={state.progress} />;
+      break;
+    case 'challenge':
+      screen = <ChallengeScreen
+                 worldId={view.worldId}
+                 setView={setView}
+                 onChallengeWin={({ worldId, score }) => {
+                   const isFinal = worldId === 'atlas';
+                   setState(prev => ({
+                     ...prev,
+                     xp: prev.xp + 200 + Math.floor(score / 10),
+                     leaves: prev.leaves + (isFinal ? 5 : 1),
+                     progress: { ...prev.progress, [`challenge:${worldId}`]: { done: true, score } }
+                   }));
+                   setCelebrate({ xp: 200 + Math.floor(score / 10), perfect: true, final: isFinal });
+                 }} />;
+      break;
+    case 'leaderboard':
+      screen = <LeaderboardScreen totalXp={state.xp} leaves={state.leaves} />;
+      break;
+    default:
+      screen = <HomeScreen progress={state.progress} setView={setView} totalXp={state.xp} debugUnlockAll={!!tweaks.unlockAllLevels} industryId={industryId} setIndustryId={setIndustryId} />;
+  }
+
+  return (
+    <div className="ml-app">
+      <TopBar view={view} setView={setView} hud={hud} />
+      <main className="ml-main">{screen}</main>
+
+      <Celebrate
+        visible={!!celebrate}
+        xp={celebrate?.xp ?? 0}
+        leaves={state.leaves}
+        perfect={!!celebrate?.perfect}
+        final={!!celebrate?.final}
+        onClose={() => setCelebrate(null)}
+      />
+
+      {/* Tweaks panel */}
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Theme accent">
+          <TweakColor
+            label="Brand accent"
+            value={tweaks.accent}
+            onChange={(v) => setTweak('accent', v)}
+            options={['#00ED64', '#71F6BA', '#016BF8', '#FFC76A', '#C390DF', '#FF7DBB']}
+          />
+        </TweakSection>
+        <TweakSection label="Behavior">
+          <TweakToggle
+            label="Show hint tooltips on hover"
+            value={tweaks.showHints}
+            onChange={(v) => setTweak('showHints', v)}
+          />
+        </TweakSection>
+        <TweakSection label="Progress (debug)">
+          <TweakToggle
+            label="Unlock all levels for testing"
+            value={!!tweaks.unlockAllLevels}
+            onChange={(v) => setTweak('unlockAllLevels', v)}
+          />
+          <TweakButton
+            label="Reset progress"
+            onClick={() => { localStorage.removeItem(STORAGE_KEY); setState(loadProgress()); setView({ name: 'home' }); }}
+          />
+          <TweakButton
+            label="Demo: complete all"
+            onClick={() => {
+              const p = {};
+              window.WORLDS.forEach(w => w.levels.forEach(l => p[`${w.id}:${l.id}`] = { done: true, leaf: true }));
+              setState(s => ({ ...s, progress: p, xp: 2400, leaves: 20 }));
+            }}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
