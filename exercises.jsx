@@ -618,36 +618,18 @@ function BlocksPreview({ level, filled, bankById }) {
   const fl = Object.fromEntries(Object.entries(filled).map(([k, v]) => [k, bankById[v]?.label]));
   const completeAll = level.snippet.filter(p => typeof p === 'object').every(p => fl[p.slot]);
 
-  if (level.id === 'q1' && completeAll) {
-    return <FakeDocs docs={[
-      { _id: '64e...', email: 'ada@analytical.dev', role: 'admin' },
-      { _id: '64f...', email: 'grace@hopper.dev',   role: 'admin' }
-    ]} note="2 docs matched" />;
-  }
-  if (level.id === 'q2' && completeAll) {
-    return <FakeDocs docs={[
-      { _id: 'ord_881', customer: 'Ada L.',   total: 142.50 },
-      { _id: 'ord_894', customer: 'Grace H.', total: 220.00 },
-      { _id: 'ord_902', customer: 'Linus T.', total: 305.99 }
-    ]} note="3 docs matched (of 8,412 scanned)" />;
-  }
-  if (level.id === 'd2' && completeAll) {
-    return <FakeDocs docs={[
-      { _id: '64ed1c...', name: 'Espresso', price: 24.99, inStock: true }
-    ]} note="acknowledged: true · insertedId: ObjectId(...)" />;
-  }
-  if (level.id === 'a4' && completeAll) {
-    return <FakeDocs docs={[
-      { _id: 'p_3091', title: 'Compound indexes deep-dive', createdAt: '2026-05-18T10:14Z' },
-      { _id: 'p_3088', title: 'Atlas vector search basics',  createdAt: '2026-05-17T22:01Z' },
-      { _id: 'p_3084', title: 'Why $match goes first',       createdAt: '2026-05-17T08:45Z' }
-    ]} note="3 docs · sorted by createdAt: -1" />;
-  }
-  if (level.id === 'v2' && completeAll) {
-    return <FakeDocs docs={[
-      { _id: 'post_91', title: 'The aggregation pipeline, end to end', score: 1.42 },
-      { _id: 'post_77', title: 'Pipelines vs subqueries', score: 1.18 }
-    ]} note="2 text matches" />;
+  if (completeAll) {
+    const rendered = renderSnippet(level.snippet, fl);
+    const collection = inferCollectionFromText(rendered, level);
+    if (/\.insertOne\s*\(/.test(rendered)) {
+      return <FakeDocs docs={[docFromInsertedSnippet(rendered, collection, level)]} note="acknowledged: true · insertedId: ObjectId(...)" />;
+    }
+    const note = rendered.includes('$search')
+      ? `2 ${humanizeCollection(collection)} matched by Atlas Search`
+      : rendered.includes('$sort') || rendered.includes('$limit')
+        ? `${Math.min(3, inferLimit(rendered) || 3)} ${humanizeCollection(collection)} · sorted and limited`
+        : `3 ${humanizeCollection(collection)} matched`;
+    return <FakeDocs docs={sampleDocsForLevel(level, collection, inferLimit(rendered) || 3, { queryText: rendered })} note={note} />;
   }
   return <div className="ml-empty">Fill the blanks to see the query result.</div>;
 }
@@ -659,29 +641,31 @@ function FillPreview({ level, filled }) {
     Object.keys(choices).every(k => filledValues[k] === choices[k].answer);
   if (!allKnown) return <div className="ml-empty">Fill all blanks to see the live result.</div>;
 
-  if (level.id === 'd3') return <FakeDocs docs={[{ _id: '...', orderId: 1042, status: 'shipped', shippedAt: '2026-05-19' }]} note="matchedCount: 1 · modifiedCount: 1" highlight="status" />;
-  if (level.id === 'd4') return <FakeDocs docs={[]} note="deletedCount: 1 · removed orderId 1187 (cancelled)" />;
-  if (level.id === 'q3') return <FakeDocs docs={[
-    { _id: '...', name: 'House Blend',   category: 'coffee', price: 14.50 },
-    { _id: '...', name: 'Genmaicha',     category: 'tea',    price:  9.00 },
-    { _id: '...', name: 'Single Origin', category: 'coffee', price: 18.50 }
-  ]} note="3 of 412 docs matched" />;
-  if (level.id === 'q4') return <FakeDocs docs={[
-    { _id: '...', name: 'Ada L.',   age: 22, active: true },
-    { _id: '...', name: 'Linus T.', age: 19, active: true }
-  ]} note="2 active users in age range" />;
-  if (level.id === 'a2') return <FakeDocs docs={[
-    { customer: 'Ada L.',   total: 1842.50 },
-    { customer: 'Grace H.', total: 1620.00 }
-  ]} note="_id hidden · projection applied" />;
-  if (level.id === 'i3') return <pre className="mono" style={{ color: '#9DD6B5', margin: 0 }}>
+  const rendered = renderFillSnippet(level, filledValues);
+  const collection = inferCollectionFromText(rendered, level);
+
+  if (/\.updateOne\s*\(/.test(rendered)) {
+    const field = stripQuotes(choices.field?.answer || 'updatedField');
+    const val = parsePreviewValue(choices.val?.answer || 'true');
+    return <FakeDocs docs={[Object.assign({ _id: '...', updatedAt: '2026-05-24T12:00Z' }, { [field]: val })]} note="matchedCount: 1 · modifiedCount: 1" highlight={field} />;
+  }
+  if (/\.deleteOne\s*\(/.test(rendered)) {
+    return <FakeDocs docs={[]} note={`deletedCount: 1 · removed one ${singularize(collection)} matching the filter`} />;
+  }
+  if (/\.createIndex\s*\(/.test(rendered)) {
+    const key = rendered.match(/\{\s*([\w.]+)\s*:\s*1\s*\}/)?.[1] || 'field';
+    const ttl = choices.sec?.answer || 'configured';
+    return <pre className="mono" style={{ color: '#9DD6B5', margin: 0 }}>
 {`✓ index built
-  ns:     app.sessions
-  key:    { lastSeen: 1 }
-  expireAfterSeconds: 86400
+  ns:     app.${collection}
+  key:    { ${key}: 1 }
+  expireAfterSeconds: ${ttl}
   background: true`}
   </pre>;
-  if (level.id === 'i4') return (
+  }
+  if (/\.explain\s*\(/.test(rendered)) {
+    const indexedFields = extractProjectionFields(rendered).join(', ') || collection;
+    return (
     <div className="ml-explain">
       <div className="ml-explain__col">
         <h5>Docs examined</h5>
@@ -691,23 +675,25 @@ function FillPreview({ level, filled }) {
       <div className="ml-explain__col">
         <h5>Keys examined</h5>
         <div className="stat">1</div>
-        <div className="sub">{`SKU lookup · 0.4 ms`}</div>
+        <div className="sub">{`${indexedFields} · 0.4 ms`}</div>
       </div>
     </div>
-  );
-  if (level.id === 'v1') return <FakeDocs docs={[
-    { _id: 'p_22', title: 'Wool socks',    score: 0.94 },
-    { _id: 'p_07', title: 'Hiking boots',  score: 0.91 },
-    { _id: 'p_45', title: 'Rain jacket',   score: 0.88 },
-    { _id: 'p_91', title: 'Trail map',     score: 0.83 },
-    { _id: 'p_12', title: 'Compass',       score: 0.79 }
-  ]} note="5 nearest neighbors · cosine similarity" />;
-  if (level.id === 'v3') return <pre className="mono" style={{ color: '#9DD6B5', margin: 0 }}>
+    );
+  }
+  if (rendered.includes('$vectorSearch')) {
+    return <FakeDocs docs={sampleDocsForLevel(level, collection, 5, { vector: true, queryText: rendered })} note="5 nearest neighbors · cosine similarity" />;
+  }
+  if (/Trigger config/.test(rendered)) {
+    const col = stripQuotes(choices.col?.answer || collection);
+    const evt = stripQuotes(choices.evt?.answer || 'change');
+    const fn = stripQuotes(choices.fn?.answer || 'handler');
+    return <pre className="mono" style={{ color: '#9DD6B5', margin: 0 }}>
 {`✓ trigger created
-  app.users · onInsert → sendWelcomeEmail()
+  app.${col} · on${capitalize(evt)} → ${fn}()
   enabled: true`}
   </pre>;
-  return <div className="ml-empty">Looks right!</div>;
+  }
+  return <FakeDocs docs={sampleDocsForLevel(level, collection, 3, { queryText: rendered })} note={`3 ${humanizeCollection(collection)} matched`} />;
 }
 
 function ReorderPreview({ level, order, stageMap }) {
@@ -715,22 +701,15 @@ function ReorderPreview({ level, order, stageMap }) {
   const stagesById = stageMap || {};
   const inOrder = currentOrder.length > 0 && currentOrder.every((id, i) => stagesById[id]?.correct === i);
   if (!inOrder) return <div className="ml-empty">Pipeline isn't in order yet — preview waiting.</div>;
-  if (level.id === 'a1') return <FakeDocs docs={[
-    { _id: 'Ada L.',   total: 4820.50 },
-    { _id: 'Grace H.', total: 3902.00 },
-    { _id: 'Linus T.', total: 2418.99 },
-    { _id: 'Edsger D.',total: 1981.20 },
-    { _id: 'Donald K.',total: 1502.10 }
-  ]} note="top 5 customers by 2024 revenue" />;
-  if (level.id === 'a3') return <FakeDocs docs={[
-    { name: 'Ada L.' }, { name: 'Grace H.' }, { name: 'Linus T.' }
-  ]} note="orders joined to customer.name" />;
-  if (level.id === 'v4') return <FakeDocs docs={[
-    { title: 'Onboarding playbook',     chunk: '…tenants are isolated…', score: 0.93 },
-    { title: 'Customer success guide',  chunk: '…activation patterns…',  score: 0.86 },
-    { title: 'Pricing FAQ',             chunk: '…tier comparisons…',     score: 0.81 }
-  ]} note="3 chunks ready to send to the LLM" />;
-  return <div className="ml-empty">Order looks right.</div>;
+  const pipelineText = level.stages.map(s => s.code).join('\n');
+  const collection = inferCollectionFromText(pipelineText, level);
+  if (pipelineText.includes('$vectorSearch')) {
+    return <FakeDocs docs={sampleDocsForLevel(level, collection, 3, { vector: true, rag: true, queryText: pipelineText })} note="3 chunks ready to send to the LLM" />;
+  }
+  if (pipelineText.includes('$lookup')) {
+    return <FakeDocs docs={sampleJoinedDocsForLevel(level)} note="joined and projected into the requested shape" />;
+  }
+  return <FakeDocs docs={sampleGroupedDocsForLevel(level, collection)} note="pipeline output matches this challenge" />;
 }
 
 function IndexPreview({ level, drops }) {
@@ -745,12 +724,12 @@ function IndexPreview({ level, drops }) {
         <div className="ml-explain__col">
           <h5>B-tree indexes</h5>
           <div className="stat">IXSCAN</div>
-          <div className="sub">userId_1 and userId_1_createdAt_-1</div>
+          <div className="sub">{summarizeIndexNeeds(level, ['single', 'compound'])}</div>
         </div>
         <div className="ml-explain__col">
           <h5>Search index</h5>
           <div className="stat">$search</div>
-          <div className="sub">title analyzed by Atlas Search</div>
+          <div className="sub">{summarizeIndexNeeds(level, ['search'])}</div>
         </div>
       </div>
     );
@@ -769,6 +748,285 @@ function IndexPreview({ level, drops }) {
       </div>
     </div>
   );
+}
+
+/* Preview helpers: derive side-panel results from the active level content
+ * instead of hardcoding shared ids like q1/d2/a1. This keeps every industry
+ * pack, plus comparison paths such as MongoDB vs Postgres, visually aligned. */
+function renderFillSnippet(level, filledValues) {
+  return (level.snippet || []).map(piece => {
+    if (typeof piece === 'string') return piece;
+    return filledValues[piece.blank] ?? '____';
+  }).join('');
+}
+
+function inferCollectionFromText(text, level = {}) {
+  if (level.collection) return level.collection;
+  const direct = String(text || '').match(/db\.(\w+)/);
+  if (direct) return direct[1];
+  const lookup = String(text || '').match(/from:\s*["'](\w+)["']/);
+  if (lookup) return lookup[1];
+  const levelText = `${level.prompt || ''} ${level.title || ''}`;
+  if (/claim/i.test(levelText)) return 'claims';
+  if (/policy/i.test(levelText)) return 'policies';
+  if (/customer|shopper|patient|member|subscriber|player|user|policyholder/i.test(levelText)) return 'customers';
+  if (/product|catalog|sku|item|inventory|cart/i.test(levelText)) return 'products';
+  if (/order|transaction|payment/i.test(levelText)) return 'orders';
+  if (/session/i.test(levelText)) return 'sessions';
+  if (/event|alert|log|experiment/i.test(levelText)) return 'events';
+  return 'sandbox';
+}
+
+function inferLimit(text) {
+  const limit = String(text || '').match(/\$limit\s*['"]?\s*[:,]\s*(\d+)/) || String(text || '').match(/limit\s*:\s*(\d+)/);
+  return limit ? Number(limit[1]) : null;
+}
+
+function stripQuotes(value) {
+  return String(value || '').replace(/^['"]|['"]$/g, '');
+}
+
+function parsePreviewValue(value) {
+  const raw = String(value || '');
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(raw)) return Number(raw);
+  return stripQuotes(raw);
+}
+
+function capitalize(value) {
+  const s = String(value || '');
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+function singularize(collection) {
+  const name = humanizeCollection(collection).replace(/ matched$/, '');
+  return name.endsWith('ies') ? name.slice(0, -3) + 'y' : name.replace(/s$/, '');
+}
+
+function humanizeCollection(collection) {
+  return String(collection || 'docs').replace(/_/g, ' ');
+}
+
+function extractProjectionFields(text) {
+  const projection = String(text || '').match(/,\s*\{([^{}]+)\}\s*\)\s*\.explain/);
+  if (!projection) return [];
+  return projection[1]
+    .split(',')
+    .map(part => part.trim().split(':')[0]?.trim())
+    .filter(field => field && field !== '_id');
+}
+
+function summarizeIndexNeeds(level, needs) {
+  const fields = (level.fields || []).filter(f => needs.includes(f.need)).map(f => f.name);
+  return fields.length ? fields.join(' · ') : 'not needed for this challenge';
+}
+
+function docFromInsertedSnippet(rendered, collection, level) {
+  const doc = { _id: 'ObjectId("67b…")' };
+  const body = String(rendered || '').match(/insertOne\s*\(\s*\{([\s\S]*?)\}\s*\)/)?.[1] || '';
+  body.split(',').forEach(line => {
+    const m = line.match(/([\w.]+)\s*:\s*(.+)/);
+    if (!m) return;
+    const key = m[1].trim();
+    const val = m[2].trim();
+    if (key && !key.startsWith('$')) doc[key] = parsePreviewValue(val);
+  });
+  if (Object.keys(doc).length > 1) return doc;
+  return sampleDocsForLevel(level, collection, 1)[0];
+}
+
+function sampleDocsForLevel(level, collection, count = 3, options = {}) {
+  const prompt = `${level.title || ''} ${level.prompt || ''}`.toLowerCase();
+  const col = String(collection || '').toLowerCase();
+  const n = Math.max(1, Math.min(count, 5));
+  const query = String(options.queryText || '');
+  const queryHints = extractQueryHints(query);
+
+  let docs;
+  if (options.rag) {
+    docs = [
+      { title: 'Tenant onboarding guide', chunk: '…authorized context only…', score: 0.93 },
+      { title: 'Support playbook', chunk: '…resolution steps…', score: 0.87 },
+      { title: 'Product FAQ', chunk: '…feature details…', score: 0.82 }
+    ];
+  } else if (options.vector || /vector|embedding|similar|nearest|rag/.test(prompt)) {
+    docs = [
+      { _id: 'vec_01', title: sampleTitleFor(collection, 'primary'), score: 0.94 },
+      { _id: 'vec_02', title: sampleTitleFor(collection, 'secondary'), score: 0.90 },
+      { _id: 'vec_03', title: sampleTitleFor(collection, 'tertiary'), score: 0.86 },
+      { _id: 'vec_04', title: sampleTitleFor(collection, 'quaternary'), score: 0.82 },
+      { _id: 'vec_05', title: sampleTitleFor(collection, 'quinary'), score: 0.79 }
+    ];
+  } else if (/claim/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'clm_4521', claimId: 'CLM-4521', type: 'home', status: 'open', estimatedLoss: 64000 },
+      { _id: 'clm_4522', claimId: 'CLM-4522', type: 'auto', status: 'under_investigation', estimatedLoss: 37500 },
+      { _id: 'clm_4523', claimId: 'CLM-4523', type: 'home', status: 'open', estimatedLoss: 51000 }
+    ];
+  } else if (/polic/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'pol_101', policyId: 'POL-101', policyType: 'home', status: 'active', premium: 1280 },
+      { _id: 'pol_204', policyId: 'POL-204', policyType: 'auto', status: 'active', premium: 920 },
+      { _id: 'pol_309', policyId: 'POL-309', policyType: 'commercial', status: 'review', premium: 4120 }
+    ];
+  } else if (/asset|machine|factory|workorder|work_order/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'asset_01', assetId: 'CNC-14', status: 'maintenance_due', line: 'A' },
+      { _id: 'asset_02', assetId: 'PRESS-07', status: 'active', line: 'B' },
+      { _id: 'asset_03', assetId: 'ROBOT-22', status: 'offline', line: 'A' }
+    ];
+  } else if (/account|payment|trade|portfolio|card/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'acct_01', accountId: 'ACC-1001', status: 'active', balance: 12840.55 },
+      { _id: 'acct_02', accountId: 'ACC-1002', status: 'review', balance: 8750.10 },
+      { _id: 'acct_03', accountId: 'ACC-1003', status: 'active', balance: 22190.00 }
+    ];
+  } else if (/patient|encounter|care|clinical|provider/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'pat_01', patientId: 'PAT-1001', status: 'active', riskScore: 91 },
+      { _id: 'pat_02', patientId: 'PAT-1002', status: 'follow_up', riskScore: 86 },
+      { _id: 'pat_03', patientId: 'PAT-1003', status: 'active', riskScore: 82 }
+    ];
+  } else if (/device|subscriber|network|ticket|call|telecom/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'sub_01', subscriberId: 'SUB-1001', plan: '5G unlimited', status: 'active' },
+      { _id: 'sub_02', subscriberId: 'SUB-1002', plan: 'fiber pro', status: 'priority' },
+      { _id: 'sub_03', subscriberId: 'SUB-1003', plan: 'business', status: 'active' }
+    ];
+  } else if (/game|player|match|session|guild/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'ply_01', playerId: 'P-1001', segment: 'whale', level: 42 },
+      { _id: 'ply_02', playerId: 'P-1002', segment: 'returning', level: 27 },
+      { _id: 'ply_03', playerId: 'P-1003', segment: 'priority', level: 35 }
+    ];
+  } else if (/product|catalog|inventory|sku|cart/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'prod_101', name: 'AI Search Add-on', category: 'software', price: 129 },
+      { _id: 'prod_204', name: 'Trail Pro Jacket', category: 'outerwear', price: 189.99 },
+      { _id: 'prod_309', name: 'Analytics Bundle', category: 'platform', price: 79 }
+    ];
+  } else if (/order|transaction|payment/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'ord_881', customer: 'Ada L.', status: 'shipped', total: 142.50 },
+      { _id: 'ord_894', customer: 'Grace H.', status: 'paid', total: 220.00 },
+      { _id: 'ord_902', customer: 'Linus T.', status: 'review', total: 305.99 }
+    ];
+  } else if (/event|alert|log|session|experiment/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'evt_01', type: 'workflow', riskScore: 91, status: 'active' },
+      { _id: 'evt_02', type: 'security', riskScore: 86, status: 'review' },
+      { _id: 'evt_03', type: 'lifecycle', riskScore: 82, status: 'queued' }
+    ];
+  } else if (/doc|post|note|article|content|media/.test(col + ' ' + prompt)) {
+    docs = [
+      { _id: 'doc_91', title: sampleTitleFor(collection, 'primary'), score: 1.42 },
+      { _id: 'doc_77', title: sampleTitleFor(collection, 'secondary'), score: 1.18 },
+      { _id: 'doc_64', title: sampleTitleFor(collection, 'tertiary'), score: 0.97 }
+    ];
+  } else {
+    docs = [
+      { _id: 'cust_01', name: 'Ada L.', segment: 'priority', healthScore: 96 },
+      { _id: 'cust_02', name: 'Grace H.', segment: 'enterprise', healthScore: 91 },
+      { _id: 'cust_03', name: 'Linus T.', segment: 'priority', healthScore: 88 }
+    ];
+  }
+  return alignDocsToQuery(docs.slice(0, n), queryHints, collection, prompt);
+}
+
+function extractQueryHints(queryText) {
+  const text = String(queryText || '');
+  const hints = {};
+
+  // Equality snippets: { field: "value" } or field: "value" inside find/aggregate.
+  Array.from(text.matchAll(/([\w.]+)\s*:\s*"([^"]+)"/g)).forEach(([, field, value]) => {
+    if (!['$match', '$project', '$sort', '$group', 'from', 'localField', 'foreignField', 'as', 'path', 'query', 'index'].includes(field)) {
+      hints[field] = value;
+    }
+  });
+
+  // $in arrays: status: { $in: ["open", "under_investigation"] }
+  const inMatch = text.match(/([\w.]+)\s*:\s*\{\s*\$in\s*:\s*\[([^\]]+)\]/);
+  if (inMatch) {
+    hints[inMatch[1]] = inMatch[2]
+      .split(',')
+      .map(v => stripQuotes(v.trim()))
+      .filter(Boolean);
+  }
+
+  // Numeric thresholds: estimatedLoss: { $gt: 50000 }
+  Array.from(text.matchAll(/([\w.]+)\s*:\s*\{\s*\$(gt|gte|lt|lte)\s*:\s*(\d+(?:\.\d+)?)/g)).forEach(([, field, op, value]) => {
+    hints[field] = { op, value: Number(value) };
+  });
+
+  return hints;
+}
+
+function alignDocsToQuery(docs, hints, collection, prompt) {
+  const entries = Object.entries(hints || {});
+  if (!entries.length) return docs;
+
+  return docs.map((doc, idx) => {
+    const next = { ...doc };
+    entries.forEach(([field, expected]) => {
+      const key = field.includes('.') ? field.split('.').pop() : field;
+      if (Array.isArray(expected)) {
+        next[key] = expected[idx % expected.length];
+      } else if (expected && typeof expected === 'object') {
+        const base = Number(expected.value || 0);
+        next[key] = expected.op === 'lt' || expected.op === 'lte'
+          ? Math.max(0, base - (idx + 1) * 5)
+          : base + (idx + 1) * 2500;
+      } else {
+        next[key] = expected;
+      }
+    });
+
+    if (/claim/i.test(collection + ' ' + prompt) && !next.claimId) next.claimId = `CLM-45${21 + idx}`;
+    return next;
+  });
+}
+
+function sampleTitleFor(collection, variant) {
+  const col = String(collection || '').toLowerCase();
+  const titles = /product|catalog/.test(col)
+    ? ['Semantic product match', 'Personalized recommendation', 'Related catalog item', 'Similar SKU', 'Alternative item']
+    : /note|doc|post|article/.test(col)
+      ? ['Schema migration playbook', 'Operational data guide', 'Search relevance notes', 'RAG grounding example', 'Developer velocity memo']
+      : ['Customer success note', 'Onboarding insight', 'Feature adoption signal', 'Lifecycle recommendation', 'Support context'];
+  const idx = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary'].indexOf(variant);
+  return titles[Math.max(0, idx)];
+}
+
+function sampleGroupedDocsForLevel(level, collection) {
+  const prompt = `${level.title || ''} ${level.prompt || ''}`.toLowerCase();
+  const metric = /revenue|value|amount|expansion/.test(prompt) ? 'total' : /risk/.test(prompt) ? 'riskScore' : 'count';
+  const base = sampleDocsForLevel(level, collection, 5);
+  return base.map((doc, idx) => ({
+    _id: doc.name || doc.customer || doc.title || doc.type || `${singularize(collection)}_${idx + 1}`,
+    [metric]: metric === 'count' ? (120 - idx * 17) : (4820 - idx * 731)
+  }));
+}
+
+function sampleJoinedDocsForLevel(level) {
+  const prompt = `${level.title || ''} ${level.prompt || ''}`.toLowerCase();
+  if (/owner|employee/.test(prompt)) {
+    return [
+      { company: 'Ada Labs', ownerName: 'Grace Hopper', healthScore: 96 },
+      { company: 'Turing Systems', ownerName: 'Linus Torvalds', healthScore: 91 }
+    ];
+  }
+  if (/product/.test(prompt)) {
+    return [
+      { orderId: 'ORD-7821', productName: 'Trail Pro Jacket', qty: 2 },
+      { orderId: 'ORD-7822', productName: 'Air Runner X', qty: 1 }
+    ];
+  }
+  return [
+    { name: 'Ada L.', summary: 'joined profile context' },
+    { name: 'Grace H.', summary: 'joined account context' },
+    { name: 'Linus T.', summary: 'joined activity context' }
+  ];
 }
 
 /* Cute fake mongo result rendering. */

@@ -3,9 +3,155 @@
 const { useState: u_s, useEffect: u_e, useRef: u_r, useMemo: u_m, useCallback: u_c } = React;
 
 /* ============================================================
+ * Landing / assignment setup
+ * ============================================================ */
+const COMPARISON_PACK_IDS = ['postgres'];
+
+function LandingScreen({ profile, packs, onStart }) {
+  const allPacks = Object.values(packs || {});
+  const generalPack = packs.general;
+  const comparisonPacks = allPacks.filter(pack => COMPARISON_PACK_IDS.includes(pack.id));
+  const industryPacks = allPacks.filter(pack => pack.id !== 'general' && !COMPARISON_PACK_IDS.includes(pack.id));
+
+  const initialPathType = profile?.pathType || 'general';
+  const [draft, setDraft] = u_s({
+    learnerName: profile?.learnerName || '',
+    company: profile?.company || '',
+    pathType: initialPathType,
+    selectedPackId: profile?.selectedPackId || 'general'
+  });
+
+  function selectPath(pathType) {
+    const selectedPackId = pathType === 'general'
+      ? 'general'
+      : pathType === 'industry'
+        ? (industryPacks[0]?.id || 'general')
+        : (comparisonPacks[0]?.id || 'postgres');
+    setDraft(prev => ({ ...prev, pathType, selectedPackId }));
+  }
+
+  const canStart = draft.learnerName.trim() && draft.company.trim() && draft.selectedPackId;
+  const selectedPack = packs[draft.selectedPackId] || generalPack;
+
+  return (
+    <div className="ml-landing">
+      <section className="ml-landing__hero">
+        <div className="ml-landing__eyebrow">MongoLingo assignment</div>
+        <h1>Choose the learning path that fits the conversation.</h1>
+        <p>
+          Start with MongoDB foundations, tailor the exercise path to an industry,
+          or compare MongoDB against another technology.
+        </p>
+      </section>
+
+      <section className="ml-landing__panel">
+        <div className="ml-form-grid">
+          <label className="ml-field">
+            <span>Your name</span>
+            <input
+              value={draft.learnerName}
+              placeholder="Ada Lovelace"
+              onChange={(e) => setDraft(prev => ({ ...prev, learnerName: e.target.value }))}
+            />
+          </label>
+          <label className="ml-field">
+            <span>Company</span>
+            <input
+              value={draft.company}
+              placeholder="Example Corp"
+              onChange={(e) => setDraft(prev => ({ ...prev, company: e.target.value }))}
+            />
+          </label>
+        </div>
+
+        <div className="ml-path-grid" role="radiogroup" aria-label="Assignment path">
+          <PathCard
+            selected={draft.pathType === 'general'}
+            title="General"
+            badge="Foundations"
+            description="Learn MongoDB documents, queries, aggregation, indexing, and Atlas capabilities."
+            onClick={() => selectPath('general')}
+          />
+          <PathCard
+            selected={draft.pathType === 'industry'}
+            title="Industry specific"
+            badge="Domain examples"
+            description="Use examples and AHA moments tailored to an industry conversation."
+            onClick={() => selectPath('industry')}
+          >
+            <select
+              value={draft.pathType === 'industry' ? draft.selectedPackId : (industryPacks[0]?.id || '')}
+              onChange={(e) => setDraft(prev => ({ ...prev, pathType: 'industry', selectedPackId: e.target.value }))}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {industryPacks.map(pack => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
+            </select>
+          </PathCard>
+          <PathCard
+            selected={draft.pathType === 'comparison'}
+            title="Technology comparison"
+            badge="Value prop"
+            description="Explore where MongoDB shines compared with another technology."
+            onClick={() => selectPath('comparison')}
+          >
+            <select
+              value={draft.pathType === 'comparison' ? draft.selectedPackId : (comparisonPacks[0]?.id || '')}
+              onChange={(e) => setDraft(prev => ({ ...prev, pathType: 'comparison', selectedPackId: e.target.value }))}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {comparisonPacks.map(pack => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
+            </select>
+          </PathCard>
+        </div>
+
+        <div className="ml-assignment-summary">
+          <div>
+            <div className="ml-pane__label">Selected assignment</div>
+            <strong>{selectedPack?.name || 'General MongoDB Foundations'}</strong>
+            <p>{selectedPack?.description || selectedPack?.promise}</p>
+          </div>
+          <button
+            className="ml-btn ml-btn--primary ml-btn--lg"
+            disabled={!canStart}
+            onClick={() => onStart({ ...draft, learnerName: draft.learnerName.trim(), company: draft.company.trim() })}
+          >
+            Start Assignment <Icon name="ChevronRight" size={13} color="currentColor" />
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PathCard({ selected, title, badge, description, children, onClick }) {
+  return (
+    <div
+      className="ml-path-card"
+      data-selected={selected}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick && onClick();
+        }
+      }}
+      role="radio"
+      aria-checked={selected}
+      tabIndex={0}
+    >
+      <span className="ml-path-card__check">{selected ? '✓' : ''}</span>
+      <span className="ml-path-card__badge">{badge}</span>
+      <strong>{title}</strong>
+      <span>{description}</span>
+      {children && <div className="ml-path-card__control">{children}</div>}
+    </div>
+  );
+}
+
+/* ============================================================
  * Home / world map
  * ============================================================ */
-function HomeScreen({ progress, setView, totalXp, debugUnlockAll = false, industryId, setIndustryId }) {
+function HomeScreen({ progress, setView, totalXp, debugUnlockAll = false, industryId, setIndustryId, profile, onChangeAssignment }) {
   const industries = window.MONGOLINGO_INDUSTRIES || {};
   const currentPack = industries[industryId] || industries.general || {};
   return (
@@ -16,29 +162,17 @@ function HomeScreen({ progress, setView, totalXp, debugUnlockAll = false, indust
           <span className="accent">One micro-challenge at a time.</span>
         </h1>
         <p>
-          Welcome back, Ada. Pick up where you left off — or jump ahead if
+          Welcome back, {profile?.learnerName || 'Ada'}. Pick up where you left off — or jump ahead if
           you're feeling brave. Each level is a 2-minute drag, drop, or fill-the-blank.
         </p>
-        {setIndustryId && Object.keys(industries).length > 1 && (
-          <div className="ml-industry-picker">
-            <label htmlFor="industry-select" style={{ fontSize: 12, color: 'var(--ml-text-faint)', marginRight: 8 }}>
-              Industry path:
-            </label>
-            <select
-              id="industry-select"
-              className="ml-industry-select"
-              value={industryId}
-              onChange={(e) => setIndustryId(e.target.value)}
-            >
-              {Object.values(industries).map(pack => (
-                <option key={pack.id} value={pack.id}>{pack.shortName || pack.name}</option>
-              ))}
-            </select>
-            {currentPack.description && (
-              <p style={{ fontSize: 12, color: 'var(--ml-text-dim)', marginTop: 8, maxWidth: 520 }}>
-                {currentPack.description}
-              </p>
-            )}
+        {profile?.onboardingComplete && (
+          <div className="ml-assignment-chip">
+            <div>
+              <span>Assignment</span>
+              <strong>{currentPack.name}</strong>
+              <small>{profile.learnerName} · {profile.company}</small>
+            </div>
+            {onChangeAssignment && <button className="ml-btn ml-btn--ghost ml-btn--sm" onClick={onChangeAssignment}>Change path</button>}
           </div>
         )}
       </div>
@@ -345,13 +479,24 @@ function LevelScreen({ worldId, levelId, setView, onComplete, progress }) {
 }
 
 function guessCollection(level) {
-  // crude — just sniff db.<x> from the snippet/skeleton
-  if (level.kind === 'index')   return level.collection;
-  if (level.kind === 'reorder') return 'orders';
-  if (level.kind === 'shape')   return 'users';
-  const text = (level.snippet || []).filter(p => typeof p === 'string').join('');
-  const m = text.match(/db\.(\w+)/);
-  return m ? m[1] : 'sandbox';
+  if (level.collection) return level.collection;
+  const text = [
+    ...(level.snippet || []).filter(p => typeof p === 'string'),
+    ...(level.stages || []).map(s => s.code || ''),
+    level.title || '',
+    level.prompt || ''
+  ].join('\n');
+  const direct = text.match(/db\.(\w+)/);
+  if (direct) return direct[1];
+  const lookup = text.match(/from:\s*["'](\w+)["']/);
+  if (lookup) return lookup[1];
+  if (/customer|shopper|patient|member|subscriber|player|profile/i.test(text)) return 'customers';
+  if (/product|catalog|sku|item|inventory|cart/i.test(text)) return 'products';
+  if (/order|claim|transaction|payment/i.test(text)) return 'orders';
+  if (/session/i.test(text)) return 'sessions';
+  if (/event|alert|log|experiment/i.test(text)) return 'events';
+  if (/doc|post|note|article|content|chunk|rag/i.test(text)) return 'docs';
+  return 'sandbox';
 }
 
 /* ============================================================
@@ -586,4 +731,4 @@ function LeaderboardScreen({ totalXp, leaves, name = 'Ada L.' }) {
   );
 }
 
-Object.assign(window, { HomeScreen, LevelScreen, ChallengeScreen, LeaderboardScreen });
+Object.assign(window, { LandingScreen, HomeScreen, LevelScreen, ChallengeScreen, LeaderboardScreen });

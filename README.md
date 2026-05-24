@@ -1,19 +1,20 @@
 # MongoLingo
 
-MongoLingo is an interactive, Duolingo-style game for learning MongoDB by doing. Players select an industry track, complete short hands-on lessons, and practice MongoDB concepts through domain-specific levels, stages, and challenges.
+MongoLingo is an interactive, Duolingo-style game for learning MongoDB by doing. Players select a learning path, complete short hands-on lessons, and practice MongoDB concepts through domain-specific or value-proposition levels, stages, and challenges.
 
 ## What is included
 
-- **Industry-specific learning paths** with proprietary examples for each domain.
+- **Learning paths** with proprietary examples for each domain, plus competitive value-proposition tracks.
 - **Stage-based exercises** that teach MongoDB document modeling, querying, aggregation, indexing, and Atlas concepts.
 - **Gamified progression** with XP, streaks, leaves, level completion, and challenge screens.
 - **Static web deployment** that runs directly from GitHub Pages.
 
-## Industry tracks
+## Learning paths
 
 MongoLingo includes content packs for:
 
 - General MongoDB learning
+- MongoDB vs Postgres value proposition
 - Manufacturing
 - Financial Services
 - Cybersecurity
@@ -24,7 +25,7 @@ MongoLingo includes content packs for:
 - Media
 - Gaming
 
-Each industry has its own `data.jsx` content pack so stages and levels can use relevant examples instead of sharing one generic dataset everywhere.
+Each industry or value-proposition path has its own `data.jsx` content pack so stages and levels can use relevant examples instead of sharing one generic dataset everywhere.
 
 ## Project structure
 
@@ -46,7 +47,8 @@ Each industry has its own `data.jsx` content pack so stages and levels can use r
 ├── telecom/data.jsx        # Telecom content pack
 ├── insurance/data.jsx      # Insurance content pack
 ├── media/data.jsx          # Media content pack
-└── gaming/data.jsx         # Gaming content pack
+├── gaming/data.jsx         # Gaming content pack
+└── postgres/data.jsx       # MongoDB vs Postgres value-proposition content pack
 ```
 
 ## Run locally

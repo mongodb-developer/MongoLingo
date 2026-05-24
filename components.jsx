@@ -79,7 +79,7 @@ function HUD({ xp, streak, leaves, onProfileClick }) {
 }
 
 /* ---------- Top bar with nav ---------- */
-function TopBar({ view, setView, hud }) {
+function TopBar({ view, setView, hud, unlockAll = false, profile, onToggleUnlockAll }) {
   return (
     <header className="ml-topbar">
       <Brand />
@@ -92,7 +92,30 @@ function TopBar({ view, setView, hud }) {
           onClick={() => setView({ name: 'leaderboard' })}
           aria-current={view.name === 'leaderboard' ? 'page' : undefined}
         >Leaderboard</button>
+        {onToggleUnlockAll && (
+          <button
+            onClick={onToggleUnlockAll}
+            aria-pressed={unlockAll}
+            title={unlockAll ? 'Lock staged progression' : 'Open all levels for testing'}
+            style={{
+              fontSize: 11,
+              padding: '5px 9px',
+              borderColor: unlockAll ? 'rgba(0,237,100,0.55)' : undefined,
+              color: unlockAll ? 'var(--lg-spring)' : undefined
+            }}
+          >
+            {unlockAll ? 'Lock stages' : 'Open all'}
+          </button>
+        )}
       </nav>
+      {profile && (
+        <div className="ml-topbar__profile" title={`${profile.learnerName} · ${profile.company}`}>
+          <Icon name="Person" size={13} color="currentColor" />
+          <span>{profile.learnerName}</span>
+          <span className="dot">·</span>
+          <span>{profile.company}</span>
+        </div>
+      )}
       <HUD {...hud} onProfileClick={() => setView({ name: 'home' })} />
     </header>
   );
