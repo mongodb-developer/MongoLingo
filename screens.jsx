@@ -261,14 +261,20 @@ function TrailNode({ side, status, sub, title, leaf, meta, special, onClick }) {
       <button
         className={`ml-trail-node${special ? ' is-special' : ''}`}
         data-status={status}
+        data-perfect={status === 'done' && !!leaf}
         disabled={status === 'locked'}
         onClick={onClick}
         aria-label={`${sub}: ${title}${status === 'locked' ? ' (locked)' : ''}`}
       >
         {status === 'done' && (
-          leaf
-            ? <LeafIcon size={36} color="var(--lg-black)" />
-            : <Icon name="Checkmark" size={32} color="var(--lg-black)" />
+          <>
+            <Icon name="Checkmark" size={32} color="var(--lg-black)" />
+            {leaf && (
+              <span className="ml-trail-node__leaf-badge" title="Perfect run">
+                <LeafIcon size={13} color="var(--lg-black)" />
+              </span>
+            )}
+          </>
         )}
         {status === 'current' && (
           special
@@ -321,13 +327,14 @@ function isWorldDone(world, progress) {
 /* ============================================================
  * Level screen — split pane.
  * ============================================================ */
-function LevelScreen({ worldId, levelId, setView, onComplete, progress }) {
+function LevelScreen({ worldId, levelId, setView, onComplete, onMistake, progress }) {
   const world = window.WORLDS.find(w => w.id === worldId);
   const levelIdx = world.levels.findIndex(l => l.id === levelId);
   const level = world.levels[levelIdx];
 
   const [exState, setExState] = u_s({});       // ready/check/reset/userState from the active exercise
   const [hintsUsed, setHintsUsed] = u_s(0);
+  const [mistakes, setMistakes] = u_s(0);
   const [resultBanner, setResultBanner] = u_s(null);
   const previewState = exState.levelId === level.id ? exState.userState : null;
   const handleExerciseState = u_c((state) => {
@@ -336,6 +343,10 @@ function LevelScreen({ worldId, levelId, setView, onComplete, progress }) {
 
   function handleResult({ correct, perfect }) {
     setResultBanner({ correct, perfect });
+    if (!correct) {
+      setMistakes(m => m + 1);
+      onMistake && onMistake();
+    }
   }
 
   function handleNext() {
@@ -343,7 +354,8 @@ function LevelScreen({ worldId, levelId, setView, onComplete, progress }) {
       onComplete({
         worldId, levelId,
         xp: level.kind === 'reorder' ? 30 : 25,
-        leaf: !!resultBanner.perfect && hintsUsed === 0
+        leaf: !!resultBanner.perfect && hintsUsed === 0,
+        clean: mistakes === 0
       });
       const nextIdx = levelIdx + 1;
       if (nextIdx < world.levels.length) {
@@ -355,7 +367,7 @@ function LevelScreen({ worldId, levelId, setView, onComplete, progress }) {
   }
 
   // Reset per-level state when level changes
-  u_e(() => { setExState({}); setHintsUsed(0); setResultBanner(null); }, [worldId, levelId]);
+  u_e(() => { setExState({}); setHintsUsed(0); setMistakes(0); setResultBanner(null); }, [worldId, levelId]);
 
   // Progress: levels in world cleared
   const cleared = world.levels.filter(l => progress[`${world.id}:${l.id}`]?.done).length;

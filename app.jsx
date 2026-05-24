@@ -43,11 +43,9 @@ function defaultProgress() {
   // Seed: world 1 levels 1-2 cleared with no leaves (so the world map looks lived-in).
   return {
     progress: {
-      'docs:d1': { done: true, leaf: true  },
-      'docs:d2': { done: true, leaf: false }
     },
     xp: 110,
-    streak: 4,
+    streak: 0,
     leaves: 1
   };
 }
@@ -97,7 +95,7 @@ function App() {
     document.documentElement.style.setProperty('--lg-spring', tweaks.accent || '#00ED64');
   }, [tweaks.accent]);
 
-  function completeLevel({ worldId, levelId, xp, leaf }) {
+  function completeLevel({ worldId, levelId, xp, leaf, clean }) {
     setState(prev => {
       const key = `${worldId}:${levelId}`;
       const wasDone = prev.progress[key]?.done;
@@ -108,6 +106,7 @@ function App() {
           [key]: { done: true, leaf: leaf || prev.progress[key]?.leaf }
         },
         xp:     prev.xp     + (wasDone ? 0 : xp),
+        streak: clean && !wasDone ? (prev.streak || 0) + 1 : prev.streak || 0,
         leaves: prev.leaves + (leaf && !prev.progress[key]?.leaf ? 1 : 0)
       };
       return next;
@@ -118,9 +117,13 @@ function App() {
 
   const hud = {
     xp: state.xp,
-    streak: state.streak,
+    streak: state.streak || 0,
     leaves: state.leaves
   };
+
+  function resetStreak() {
+    setState(prev => ({ ...prev, streak: 0 }));
+  }
   // Stages are locked by default. The small header button is the source of truth
   // for temporarily opening every level during testing.
   const debugUnlockAll = unlockAll;
@@ -154,6 +157,7 @@ function App() {
                  worldId={view.worldId} levelId={view.levelId}
                  setView={setView}
                  onComplete={completeLevel}
+                 onMistake={resetStreak}
                  progress={state.progress} />;
       break;
     case 'challenge':

@@ -52,7 +52,21 @@ function Brand() {
 }
 
 /* ---------- HUD: XP, streak, leaves, avatar ---------- */
-function HUD({ xp, streak, leaves, onProfileClick }) {
+function initialsFromName(name) {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return 'ML';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function HUD({ xp, streak, leaves, profile, onProfileClick }) {
+  const avatarLabel = profile?.learnerName ? initialsFromName(profile.learnerName) : 'ML';
+  const profileTitle = profile?.learnerName
+    ? `${profile.learnerName} · ${profile.company || 'MongoLingo learner'}`
+    : 'Set learner profile';
   return (
     <div className="ml-topbar__hud">
       <div className="ml-stat ml-stat--xp" title="Experience points">
@@ -60,7 +74,7 @@ function HUD({ xp, streak, leaves, onProfileClick }) {
         <span className="num">{xp.toLocaleString()}</span>
         <span style={{ color: 'var(--ml-text-faint)', fontWeight: 500, fontSize: 11 }}>XP</span>
       </div>
-      <div className="ml-stat ml-stat--streak" title="Day streak">
+      <div className="ml-stat ml-stat--streak" title="Clean-submit streak — wrong submits reset this to 0">
         <span style={{ fontSize: 14 }}>🔥</span>
         <span className="num">{streak}</span>
       </div>
@@ -71,9 +85,10 @@ function HUD({ xp, streak, leaves, onProfileClick }) {
       <button
         className="ml-avatar"
         onClick={onProfileClick}
-        aria-label="Profile"
+        aria-label={profileTitle}
+        title={profileTitle}
         style={{ border: 0 }}
-      >AL</button>
+      >{avatarLabel}</button>
     </div>
   );
 }
@@ -116,7 +131,7 @@ function TopBar({ view, setView, hud, unlockAll = false, profile, onToggleUnlock
           <span>{profile.company}</span>
         </div>
       )}
-      <HUD {...hud} onProfileClick={() => setView({ name: 'home' })} />
+      <HUD {...hud} profile={profile} onProfileClick={() => setView({ name: profile ? 'landing' : 'home' })} />
     </header>
   );
 }

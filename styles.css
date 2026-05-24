@@ -584,6 +584,11 @@ code, pre, .mono { font-family: var(--ml-font-mono); }
   border-color: #1AF076;
   box-shadow: 0 4px 0 0 var(--lg-green-base), 0 0 0 2px rgba(0,237,100,0.18);
 }
+.ml-trail-node[data-status="done"][data-perfect="true"] {
+  background: linear-gradient(135deg, var(--lg-yellow-light2), var(--lg-yellow-base));
+  border-color: var(--lg-yellow-base);
+  box-shadow: 0 4px 0 0 #B7860C, 0 0 0 3px rgba(255,192,16,0.22);
+}
 .ml-trail-node[data-status="current"] {
   background: #fff;
   color: var(--lg-black);
@@ -616,6 +621,20 @@ code, pre, .mono { font-family: var(--ml-font-mono); }
 }
 .ml-trail-node__play {
   font-size: 22px; line-height: 1; margin-left: 4px; color: var(--lg-black);
+}
+.ml-trail-node__leaf-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.48);
+  border: 1px solid rgba(0,30,43,0.18);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.18);
 }
 .ml-trail-node__pulse {
   position: absolute; inset: -10px;
