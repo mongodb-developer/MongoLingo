@@ -378,8 +378,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'Underwriting copilots must only access the insurer\'s own guidelines and precedent. Pre-filtering by insurerId ensures data isolation, and trimming keeps the LLM focused on relevant underwriting rules.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "uw_embed", path: "embedding", queryVector: q, limit: 8, filter: { insurerId } }', sub: 'k-NN scoped to this insurer', correct: 0 },
+                { id: 'pj', code: '$project: { _id: 0, guideline: 1, section: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 },
         { id: 'ms', code: '$match: { score: { $gt: 0.78 } }', sub: 'drop low-confidence matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, guideline: 1, section: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 }
+
       ],
       initial: ['pj', 'ms', 'vs']
     }

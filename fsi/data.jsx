@@ -378,8 +378,8 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'Compliance copilots must only search within the institution\'s regulatory corpus. Pre-filtering by institution ensures the LLM never sees another bank\'s data, and trimming the payload controls token cost.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "reg_embed", path: "embedding", queryVector: q, limit: 8, filter: { bankId } }', sub: 'k-NN scoped to this bank', correct: 0 },
-        { id: 'ms', code: '$match: { score: { $gt: 0.80 } }', sub: 'drop low-confidence matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, regulation: 1, section: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 }
+                { id: 'pj', code: '$project: { _id: 0, regulation: 1, section: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 },
+        { id: 'ms', code: '$match: { score: { $gt: 0.80 } }', sub: 'drop low-confidence matches', correct: 1 }
       ],
       initial: ['pj', 'ms', 'vs']
     }

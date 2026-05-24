@@ -378,8 +378,8 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'Clinical copilots must only access the institution\'s own clinical knowledge base. Pre-filtering by hospitalId ensures patient privacy, and trimming the payload keeps the LLM focused on relevant protocols.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "protocol_embed", path: "embedding", queryVector: q, limit: 8, filter: { hospitalId } }', sub: 'k-NN scoped to this hospital', correct: 0 },
+        { id: 'pj', code: '$project: { _id: 0, protocol: 1, section: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 },
         { id: 'ms', code: '$match: { score: { $gt: 0.82 } }', sub: 'drop low-confidence matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, protocol: 1, section: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 }
       ],
       initial: ['pj', 'ms', 'vs']
     }

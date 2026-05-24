@@ -379,8 +379,8 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'AI shopping assistants must search within the retailer\'s catalog only. Pre-filtering by storeId ensures relevance, and trimming the payload keeps LLM costs low while delivering accurate recommendations.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "catalog_embed", path: "embedding", queryVector: q, limit: 8, filter: { storeId } }', sub: 'k-NN scoped to this store', correct: 0 },
+                { id: 'pj', code: '$project: { _id: 0, name: 1, description: 1, price: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 },
         { id: 'ms', code: '$match: { score: { $gt: 0.75 } }', sub: 'drop weak matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, name: 1, description: 1, price: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 }
       ],
       initial: ['pj', 'ms', 'vs']
     }

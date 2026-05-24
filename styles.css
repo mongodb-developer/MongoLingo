@@ -1663,6 +1663,47 @@ code, pre, .mono { font-family: var(--ml-font-mono); }
   line-height: 1.5;
 }
 
+/* ── Explicit hint reveal card ───────────────────────────────── */
+.ml-hint-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(255,192,16,0.075);
+  border: 1px solid rgba(255,192,16,0.24);
+}
+.ml-hint-card__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(0,237,100,0.08);
+  border: 1px solid var(--ml-border-green);
+}
+.ml-hint-card__body {
+  min-width: 0;
+  flex: 1;
+}
+.ml-hint-card__title {
+  color: var(--lg-yellow-base);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.ml-hint-card ol {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ml-text-dim);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.ml-hint-card li + li { margin-top: 5px; }
+
 @keyframes ml-aha-appear {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }

@@ -278,8 +278,8 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'Content copilots must only recommend from the platform\'s own catalog. Pre-filtering by platformId ensures only licensed content is suggested, and trimming controls LLM token cost.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "catalog_embed", path: "embedding", queryVector: q, limit: 8, filter: { platformId } }', sub: 'k-NN scoped to platform', correct: 0 },
+                { id: 'pj', code: '$project: { _id: 0, title: 1, synopsis: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 },
         { id: 'ms', code: '$match: { score: { $gt: 0.77 } }', sub: 'drop weak matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, title: 1, synopsis: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 }
       ],
       initial: ['pj', 'ms', 'vs']
     }

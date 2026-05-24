@@ -395,8 +395,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'MongoDB Atlas lets AI features use documents, metadata filters, semantic vectors, and projections together. That means fewer moving pieces than coordinating a relational store, search engine, vector DB, and sync pipelines.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "docs_embed", path: "embedding", queryVector: q, limit: 8, filter: { tenantId } }', sub: 'semantic search scoped to tenant', correct: 0 },
+                { id: 'pj', code: '$project: { _id: 0, title: 1, chunk: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim context for the LLM', correct: 2 },
         { id: 'ms', code: '$match: { score: { $gt: 0.78 } }', sub: 'drop weak matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, title: 1, chunk: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim context for the LLM', correct: 2 }
+
       ],
       initial: ['pj', 'ms', 'vs']
     }

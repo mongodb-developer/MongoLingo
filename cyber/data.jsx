@@ -377,8 +377,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'SOC copilots must only access the organization\'s own runbooks and intel. Pre-filtering by orgId ensures data isolation, and trimming keeps the LLM focused on relevant investigation procedures.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "runbook_embed", path: "embedding", queryVector: q, limit: 8, filter: { orgId } }', sub: 'k-NN scoped to this org', correct: 0 },
+
+        { id: 'pj', code: '$project: { _id: 0, procedure: 1, section: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 },
         { id: 'ms', code: '$match: { score: { $gt: 0.80 } }', sub: 'drop low-confidence matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, procedure: 1, section: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 }
       ],
       initial: ['pj', 'ms', 'vs']
     }

@@ -360,6 +360,9 @@ function LevelScreen({ worldId, levelId, setView, onComplete, progress }) {
   // Progress: levels in world cleared
   const cleared = world.levels.filter(l => progress[`${world.id}:${l.id}`]?.done).length;
   const progressPct = ((levelIdx + (resultBanner?.correct ? 1 : 0)) / world.levels.length) * 100;
+  const levelHints = getLevelHints(level);
+  const revealedHints = levelHints.slice(0, hintsUsed);
+  const hasMoreHints = hintsUsed < levelHints.length;
 
   let ExerciseComp;
   switch (level.kind) {
@@ -423,6 +426,20 @@ function LevelScreen({ worldId, levelId, setView, onComplete, progress }) {
             </div>
           )}
 
+          {revealedHints.length > 0 && (
+            <div className="ml-hint-card" aria-live="polite">
+              <div className="ml-hint-card__icon">
+                <Icon name="Bulb" size={15} color="var(--lg-spring)" />
+              </div>
+              <div className="ml-hint-card__body">
+                <div className="ml-hint-card__title">Hint {revealedHints.length} of {levelHints.length}</div>
+                <ol>
+                  {revealedHints.map((hint, idx) => <li key={idx}>{hint}</li>)}
+                </ol>
+              </div>
+            </div>
+          )}
+
           <div className="ml-actions">
             <div className="ml-actions__left">
               <button
@@ -433,10 +450,11 @@ function LevelScreen({ worldId, levelId, setView, onComplete, progress }) {
               </button>
               <button
                 className="ml-btn ml-btn--ghost"
-                onClick={() => setHintsUsed(h => h + 1)}
-                title="Reveal the next hint"
+                onClick={() => hasMoreHints && setHintsUsed(h => Math.min(h + 1, levelHints.length))}
+                disabled={!hasMoreHints}
+                title={hasMoreHints ? 'Reveal the next hint' : 'All hints shown'}
               >
-                <Icon name="Bulb" size={13} color="currentColor" /> Hint ({hintsUsed})
+                <Icon name="Bulb" size={13} color="currentColor" /> {hasMoreHints ? `Hint (${hintsUsed}/${levelHints.length})` : 'All hints shown'}
               </button>
             </div>
             <div className="ml-actions__right">
@@ -476,6 +494,31 @@ function LevelScreen({ worldId, levelId, setView, onComplete, progress }) {
       </div>
     </div>
   );
+}
+
+function getLevelHints(level) {
+  const sharedHints = (window.LEVEL_HINTS && window.LEVEL_HINTS[level.id]) || [];
+  const levelHints = Array.isArray(level.hints) ? level.hints : [];
+  const hints = levelHints.length ? levelHints : sharedHints;
+  if (hints.length) return hints.slice(0, 2);
+  return fallbackLevelHints(level).slice(0, 2);
+}
+
+function fallbackLevelHints(level) {
+  switch (level.kind) {
+    case 'shape':
+      return ['Match the field values to the expected JSON/BSON types.', 'Quoted values are strings; unquoted true/false and numbers keep their native types.'];
+    case 'blocks':
+      return ['Fill the collection and operation first, then the values.', 'MongoDB operators and stages usually start with $.'];
+    case 'fill':
+      return ['Choose the operator before filling values.', 'Look at the prompt wording: it usually names the field or operation you need.'];
+    case 'reorder':
+      return ['Read each stage description and order the data flow from filter to final shape.', 'Filtering early usually makes later stages cheaper.'];
+    case 'index':
+      return ['Match index type to access pattern, not just field name.', 'Compound indexes support multi-field filter/sort patterns.'];
+    default:
+      return ['Use the prompt and snippet structure to narrow the choices.', 'Eliminate distractors that are not valid MongoDB syntax.'];
+  }
 }
 
 function guessCollection(level) {

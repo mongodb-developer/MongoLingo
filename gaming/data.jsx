@@ -274,8 +274,8 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'Game master copilots must only access the game\'s own rules and policies. Pre-filtering by gameId ensures consistency, and trimming keeps the LLM focused on relevant rulings.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "rules_embed", path: "embedding", queryVector: q, limit: 8, filter: { gameId } }', sub: 'k-NN scoped to this game', correct: 0 },
+        { id: 'pj', code: '$project: { _id: 0, rule: 1, context: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 },
         { id: 'ms', code: '$match: { score: { $gt: 0.79 } }', sub: 'drop weak matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, rule: 1, context: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 }
       ],
       initial: ['pj', 'ms', 'vs']
     }

@@ -275,8 +275,8 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'Maintenance copilots must only access the plant\'s own procedures. Pre-filtering by plantId ensures safety-critical isolation, and trimming keeps the LLM focused on relevant repair steps.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "maint_embed", path: "embedding", queryVector: q, limit: 8, filter: { plantId } }', sub: 'k-NN scoped to this plant', correct: 0 },
+                { id: 'pj', code: '$project: { _id: 0, procedure: 1, equipment: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 },
         { id: 'ms', code: '$match: { score: { $gt: 0.80 } }', sub: 'drop weak matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, procedure: 1, equipment: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 }
       ],
       initial: ['pj', 'ms', 'vs']
     }

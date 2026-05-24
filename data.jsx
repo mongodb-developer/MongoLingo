@@ -36,6 +36,89 @@ const HINTS = /*EDITMODE-BEGIN*/{
   "compound":      "Index across multiple fields. Order matters (ESR)."
 }/*HINTS-END*/;
 
+const LEVEL_HINTS = {
+  d1: [
+    'Match each field to the BSON/JSON type the document expects.',
+    'Strings need quotes; numbers, booleans, arrays, and ObjectIds do not.'
+  ],
+  d2: [
+    'Find the collection name first, then choose the MongoDB write operation.',
+    'insertOne() writes exactly one document object and returns an inserted _id.'
+  ],
+  d3: [
+    'Use $set when you want to patch fields without replacing the whole document.',
+    'The first argument finds the document; the second argument describes the update.'
+  ],
+  d4: [
+    'Use deleteOne when the task asks to remove exactly one matching document.',
+    'If a sort is present, it decides which matching document is removed first.'
+  ],
+  q1: [
+    'Equality queries match a field directly to one value.',
+    'The filter shape is { field: value }; string values need quotes.'
+  ],
+  q2: [
+    '$match is the aggregation stage that filters documents.',
+    'Use $gt for “greater than”; keep numeric thresholds as numbers, not strings.'
+  ],
+  q3: [
+    '$in expects an array of possible values.',
+    'Use $in when one field can match any value from a list.'
+  ],
+  q4: [
+    'MongoDB implicitly ANDs conditions listed in the same filter object.',
+    'Use range operators like $gte/$lte or $gt/$lt inside the field condition.'
+  ],
+  a1: [
+    'Filter early to reduce how much data later stages process.',
+    'Group before sorting when the sort depends on an aggregated value.'
+  ],
+  a2: [
+    '$project controls the output shape returned by the pipeline.',
+    'Use _id: 0 to hide MongoDB’s default _id field when the UI does not need it.'
+  ],
+  a3: [
+    '$lookup attaches matching documents from another collection as an array.',
+    'Use $unwind after $lookup when you want one joined object instead of an array.'
+  ],
+  a4: [
+    '$sort chooses the order; $limit chooses how many results remain.',
+    'For newest or highest first, descending sort usually uses -1.'
+  ],
+  i1: [
+    'Pick the index based on the whole query pattern, not just the field name.',
+    'Text search belongs to Atlas Search; low-cardinality booleans often should not be indexed alone.'
+  ],
+  i2: [
+    'ESR means Equality fields first, then Sort fields, then Range fields.',
+    'Range predicates like $gt/$lt usually come after equality and sort keys in the compound index.'
+  ],
+  i3: [
+    'TTL indexes require a date field and expireAfterSeconds.',
+    'Convert days or hours into seconds before filling the TTL value.'
+  ],
+  i4: [
+    'A covered query projects only fields that exist in the index.',
+    'Exclude _id with _id: 0 unless _id is also part of the index.'
+  ],
+  v1: [
+    '$vectorSearch needs the indexed vector path and a numeric limit.',
+    'The query vector comes from an embedding model; Atlas returns nearest neighbors.'
+  ],
+  v2: [
+    'Atlas Search runs inside aggregate() as a $search stage.',
+    'Use the text operator with a path and query for full-text matching.'
+  ],
+  v3: [
+    'A trigger watches one collection for specific operation types.',
+    'The function name should be a string reference to the server-side handler.'
+  ],
+  v4: [
+    'For RAG, retrieve relevant records first, then trim the payload for the LLM.',
+    'Use filters to keep retrieval scoped to the right tenant, store, org, or domain.'
+  ]
+};
+
 const WORLDS = [
   /* ============================================================ WORLD 1 */
   {
@@ -615,3 +698,4 @@ registerMongoLingoIndustry({
 
 window.WORLDS = WORLDS;
 window.HINTS  = HINTS;
+window.LEVEL_HINTS = LEVEL_HINTS;

@@ -378,8 +378,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       why: 'Support copilots must only access the carrier\'s own documentation. Pre-filtering by carrierId ensures isolation, and trimming keeps the LLM focused on relevant troubleshooting steps.',
       stages: [
         { id: 'vs', code: '$vectorSearch: { index: "kb_embed", path: "embedding", queryVector: q, limit: 8, filter: { carrierId } }', sub: 'k-NN scoped to this carrier', correct: 0 },
+        { id: 'pj', code: '$project: { _id: 0, article: 1, solution: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 },
         { id: 'ms', code: '$match: { score: { $gt: 0.76 } }', sub: 'drop weak matches', correct: 1 },
-        { id: 'pj', code: '$project: { _id: 0, article: 1, solution: 1, score: { $meta: "vectorSearchScore" } }', sub: 'trim for the LLM', correct: 2 }
+
       ],
       initial: ['pj', 'ms', 'vs']
     }
