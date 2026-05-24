@@ -973,10 +973,7 @@ function alignDocsToQuery(docs, hints, collection, prompt) {
       if (Array.isArray(expected)) {
         next[key] = expected[idx % expected.length];
       } else if (expected && typeof expected === 'object') {
-        const base = Number(expected.value || 0);
-        next[key] = expected.op === 'lt' || expected.op === 'lte'
-          ? Math.max(0, base - (idx + 1) * 5)
-          : base + (idx + 1) * 2500;
+        next[key] = saneNumericValueForField(key, expected, idx);
       } else {
         next[key] = expected;
       }
@@ -985,6 +982,52 @@ function alignDocsToQuery(docs, hints, collection, prompt) {
     if (/claim/i.test(collection + ' ' + prompt) && !next.claimId) next.claimId = `CLM-45${21 + idx}`;
     return next;
   });
+}
+
+function saneNumericValueForField(field, condition, idx) {
+  const key = String(field || '').toLowerCase();
+  const base = Number(condition.value || 0);
+  const isUpperBound = condition.op === 'lt' || condition.op === 'lte';
+
+  function above(step, max = Infinity) {
+    return Math.min(max, base + (idx + 1) * step);
+  }
+  function below(step, min = 0) {
+    return Math.max(min, base - (idx + 1) * step);
+  }
+
+  if (key === 'age' || key.endsWith('.age')) {
+    return isUpperBound ? below(4, 1) : Math.min(99, base + idx * 7);
+  }
+  if (key.includes('score') || key.includes('risk')) {
+    if (base > 0 && base < 1) return Number(Math.min(0.99, base + (idx + 1) * 0.03).toFixed(2));
+    return isUpperBound ? below(3, 1) : above(3, 100);
+  }
+  if (key.includes('rating')) {
+    return Number((isUpperBound ? below(0.2, 0) : above(0.2, 5)).toFixed(1));
+  }
+  if (key.includes('heartrate')) {
+    return isUpperBound ? below(4, 40) : above(5, 210);
+  }
+  if (key.includes('temperature') || key === 'value') {
+    return isUpperBound ? below(2, -50) : above(2, 140);
+  }
+  if (key.includes('lengthofstay') || key.includes('duration')) {
+    return isUpperBound ? below(1, 0) : above(2, 365);
+  }
+  if (key.includes('level')) {
+    return isUpperBound ? below(1, 1) : above(2, 100);
+  }
+  if (key.includes('count') || key.includes('qty') || key.includes('quantity')) {
+    return Math.round(isUpperBound ? below(1, 0) : above(1, 100000));
+  }
+
+  // Money-like fields can safely move in larger increments.
+  if (key.includes('amount') || key.includes('loss') || key.includes('balance') || key.includes('premium') || key.includes('price') || key.includes('total') || key.includes('asset')) {
+    return isUpperBound ? below(2500, 0) : above(2500);
+  }
+
+  return isUpperBound ? below(5, 0) : above(5);
 }
 
 function sampleTitleFor(collection, variant) {
