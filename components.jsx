@@ -94,7 +94,7 @@ function HUD({ xp, streak, leaves, profile, onProfileClick }) {
 }
 
 /* ---------- Top bar with nav ---------- */
-function TopBar({ view, setView, hud, unlockAll = false, profile, onToggleUnlockAll }) {
+function TopBar({ view, setView, hud, unlockAll = false, profile, onToggleUnlockAll, onProfileClick }) {
   return (
     <header className="ml-topbar">
       <Brand />
@@ -131,7 +131,7 @@ function TopBar({ view, setView, hud, unlockAll = false, profile, onToggleUnlock
           <span>{profile.company}</span>
         </div>
       )}
-      <HUD {...hud} profile={profile} onProfileClick={() => setView({ name: profile ? 'landing' : 'home' })} />
+      <HUD {...hud} profile={profile} onProfileClick={onProfileClick || (() => setView({ name: 'home' }))} />
     </header>
   );
 }

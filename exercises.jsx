@@ -585,8 +585,11 @@ function FieldDrop({ filled, label, onDrop, onClear, onPick }) {
 /* ====================================================================
  * Live previews per exercise kind — rendered by parent in the right pane.
  * ==================================================================== */
-function LevelPreview({ level, userState }) {
-  if (!userState) return <div className="ml-empty">Start solving — results appear here.</div>;
+function LevelPreview({ level, userState, resultState }) {
+  if (!resultState?.correct) {
+    return <div className="ml-empty">Submit a correct answer to run the sandbox and reveal results.</div>;
+  }
+  if (!userState) return <div className="ml-empty">Result pending — submit a correct answer to run the sandbox.</div>;
   switch (level.kind) {
     case 'shape':   return <ShapePreview   level={level} {...userState} />;
     case 'blocks':  return <BlocksPreview  level={level} {...userState} />;
@@ -845,19 +848,9 @@ function sampleDocsForLevel(level, collection, count = 3, options = {}) {
 
   let docs;
   if (options.rag) {
-    docs = [
-      { title: 'Tenant onboarding guide', chunk: '…authorized context only…', score: 0.93 },
-      { title: 'Support playbook', chunk: '…resolution steps…', score: 0.87 },
-      { title: 'Product FAQ', chunk: '…feature details…', score: 0.82 }
-    ];
+    docs = ragDocsForContext(level, collection);
   } else if (options.vector || /vector|embedding|similar|nearest|rag/.test(prompt)) {
-    docs = [
-      { _id: 'vec_01', title: sampleTitleFor(collection, 'primary'), score: 0.94 },
-      { _id: 'vec_02', title: sampleTitleFor(collection, 'secondary'), score: 0.90 },
-      { _id: 'vec_03', title: sampleTitleFor(collection, 'tertiary'), score: 0.86 },
-      { _id: 'vec_04', title: sampleTitleFor(collection, 'quaternary'), score: 0.82 },
-      { _id: 'vec_05', title: sampleTitleFor(collection, 'quinary'), score: 0.79 }
-    ];
+    docs = vectorDocsForContext(level, collection);
   } else if (/claim/.test(col + ' ' + prompt)) {
     docs = [
       { _id: 'clm_4521', claimId: 'CLM-4521', type: 'home', status: 'open', estimatedLoss: 64000 },
@@ -1039,6 +1032,41 @@ function sampleTitleFor(collection, variant) {
       : ['Customer success note', 'Onboarding insight', 'Feature adoption signal', 'Lifecycle recommendation', 'Support context'];
   const idx = ['primary', 'secondary', 'tertiary', 'quaternary', 'quinary'].indexOf(variant);
   return titles[Math.max(0, idx)];
+}
+
+function vectorDocsForContext(level, collection) {
+  const text = `${collection || ''} ${level.title || ''} ${level.prompt || ''}`.toLowerCase();
+  let titles;
+  if (/claim|insurance/.test(text)) {
+    titles = ['Water damage precedent claim', 'Similar roof leak claim', 'Comparable auto collision claim', 'Prior fraud-review narrative', 'Resolved property loss case'];
+  } else if (/patient|encounter|clinical|health/.test(text)) {
+    titles = ['Similar diabetes care plan', 'Comparable cardiac encounter', 'Readmission-risk case note', 'Medication interaction note', 'Follow-up protocol match'];
+  } else if (/transaction|account|bank|fsi|fraud/.test(text)) {
+    titles = ['Suspicious wire pattern', 'Similar card fraud event', 'High-value transfer precedent', 'AML review narrative', 'Related account activity'];
+  } else if (/asset|sensor|maintenance|manufactur/.test(text)) {
+    titles = ['Similar pump vibration event', 'Prior overheating incident', 'Maintenance procedure match', 'Downtime root-cause note', 'Comparable sensor anomaly'];
+  } else if (/security|threat|alert|runbook|ioc/.test(text)) {
+    titles = ['Similar intrusion alert', 'Related threat intel note', 'Incident response runbook', 'Matching IOC investigation', 'Privilege escalation case'];
+  } else if (/subscriber|network|telecom|device/.test(text)) {
+    titles = ['Similar churn-risk subscriber', 'Network outage precedent', 'Comparable device issue', 'Fiber support case', '5G coverage complaint'];
+  } else if (/game|player|match|guild/.test(text)) {
+    titles = ['Similar player behavior', 'Comparable match pattern', 'Churn-risk session', 'High-value player segment', 'Guild activity signal'];
+  } else if (/product|catalog|retail|cart/.test(text)) {
+    titles = ['Similar catalog item', 'Related product description', 'Comparable shopper intent', 'Personalized recommendation', 'Product discovery match'];
+  } else if (/postgres|schema|migration/.test(text)) {
+    titles = ['Schema migration pain note', 'Document-model comparison', 'Join-heavy workflow example', 'JSON payload modeling case', 'Atlas platform advantage'];
+  } else {
+    titles = ['Relevant operational document', 'Similar domain record', 'Related support note', 'Comparable workflow event', 'Matched knowledge article'];
+  }
+  return titles.map((title, idx) => ({ _id: `vec_${String(idx + 1).padStart(2, '0')}`, title, score: [0.94, 0.90, 0.86, 0.82, 0.79][idx] }));
+}
+
+function ragDocsForContext(level, collection) {
+  return vectorDocsForContext(level, collection).slice(0, 3).map((doc, idx) => ({
+    title: doc.title,
+    chunk: ['…authorized context only…', '…most relevant passage…', '…trimmed for the LLM…'][idx],
+    score: doc.score
+  }));
 }
 
 function sampleGroupedDocsForLevel(level, collection) {

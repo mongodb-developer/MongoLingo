@@ -336,7 +336,7 @@ function LevelScreen({ worldId, levelId, setView, onComplete, onMistake, progres
   const [hintsUsed, setHintsUsed] = u_s(0);
   const [mistakes, setMistakes] = u_s(0);
   const [resultBanner, setResultBanner] = u_s(null);
-  const previewState = exState.levelId === level.id ? exState.userState : null;
+  const previewState = resultBanner?.correct && exState.levelId === level.id ? exState.userState : null;
   const handleExerciseState = u_c((state) => {
     setExState({ ...state, levelId: level.id });
   }, [level.id]);
@@ -492,7 +492,7 @@ function LevelScreen({ worldId, levelId, setView, onComplete, onMistake, progres
           <div className="ml-preview">
             <div className="ml-preview__title">db.{guessCollection(level)} · result</div>
             <div className="ml-preview__body">
-              <LevelPreview level={level} userState={previewState} />
+              <LevelPreview level={level} userState={previewState} resultState={resultBanner} />
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', fontSize: 11, color: 'var(--ml-text-faint)' }}>
               <span style={{

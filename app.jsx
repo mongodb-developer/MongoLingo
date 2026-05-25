@@ -40,17 +40,27 @@ function loadProgress() {
   }
 }
 function defaultProgress() {
-  // Seed: world 1 levels 1-2 cleared with no leaves (so the world map looks lived-in).
   return {
     progress: {
     },
-    xp: 110,
+    xp: 0,
     streak: 0,
-    leaves: 1
+    leaves: 0
   };
 }
 function saveProgress(state) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+function hasAnyProgress(state) {
+  return !!(
+    state && (
+      Object.keys(state.progress || {}).length > 0 ||
+      (state.xp || 0) > 0 ||
+      (state.leaves || 0) > 0 ||
+      (state.streak || 0) > 0
+    )
+  );
 }
 
 function App() {
@@ -136,6 +146,12 @@ function App() {
   }
 
   function changeAssignment() {
+    if (hasAnyProgress(state)) {
+      const discard = window.confirm('Changing learner or assignment will discard all current progress and start fresh. Continue?');
+      if (!discard) return;
+      try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+      setState(defaultProgress());
+    }
     setProfile(prev => ({ ...prev, onboardingComplete: false }));
     setView({ name: 'landing' });
   }
@@ -193,6 +209,7 @@ function App() {
         unlockAll={debugUnlockAll}
         profile={profile.onboardingComplete ? profile : null}
         onToggleUnlockAll={() => setUnlockAll(v => !v)}
+        onProfileClick={changeAssignment}
       />
       <main className="ml-main">{screen}</main>
 
