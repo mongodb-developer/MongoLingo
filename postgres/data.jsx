@@ -2,8 +2,8 @@
  * This pack sits side by side with the current General and industry paths. */
 registerMongoLingoIndustry(createMongoLingoIndustryPack({
   id: 'postgres',
-  name: 'MongoDB vs Postgres',
-  shortName: 'MongoDB vs Postgres',
+  name: 'Postgres vs MongoDB',
+  shortName: 'Postgres vs MongoDB',
   description: 'A side-by-side value path showing where MongoDB shines for flexible schemas, nested data, aggregation, search, vectors, and developer velocity.',
   promise: 'MongoDB shines when modern applications need flexible, JSON-shaped operational data, rich indexes, in-database transformations, and Atlas search/vector capabilities without stitching together extra systems.',
   searchPhrase: 'schema migration pain',
@@ -26,6 +26,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     transactionPlural: 'workflow events',
     documentPlural: 'application documents'
   },
+  stream: { eventCollection: 'appEvents', alertCollection: 'automationAlerts', eventPlural: 'application events', criticalLabel: 'workflow-critical events', scoreField: 'priorityScore', threshold: 90, alertType: 'workflow_automation', sourceDb: 'app', outcome: 'real-time automations without external CDC plumbing' },
   aha: [
     { title: 'AHA: MongoDB stores the object your app already uses', message: 'Instead of decomposing every customer, product, or event into many tables, MongoDB keeps related JSON-shaped data together so teams ship features faster.' },
     { title: 'AHA: Flexible schema reduces migration drag', message: 'When product requirements change, MongoDB can add fields to new documents immediately while validation rules keep critical structure safe.' },

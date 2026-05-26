@@ -1,5 +1,5 @@
 /* MongoLingo — content data
- * Five worlds × multiple levels. Each level declares its `kind`:
+ * Six worlds × multiple levels. Each level declares its `kind`:
  *   - "shape"   → drag fields into a JSON document shape
  *   - "blocks"  → drag operator/value tokens into snippet slots
  *   - "reorder" → drag pipeline stages into the right order
@@ -30,6 +30,9 @@ const HINTS = /*EDITMODE-BEGIN*/{
   "deleteOne":     "Deletes the first matching doc.",
   "explain":       "Returns the query plan + execution stats.",
   "createIndex":   "Builds an index on one or more fields. Reads get fast.",
+  "watch":         "Opens a change stream cursor for inserts, updates, deletes, and replaces.",
+  "$source":       "Atlas Stream Processing stage that reads from a streaming source.",
+  "$merge":        "Writes aggregation or stream output into a target collection.",
   "TTL":           "Time-To-Live: docs expire automatically after N seconds.",
   "ESR":           "Equality → Sort → Range. Compound-index field order rule.",
   "covered":       "All projected fields live in the index — no fetch needed.",
@@ -116,6 +119,22 @@ const LEVEL_HINTS = {
   v4: [
     'For RAG, retrieve relevant records first, then trim the payload for the LLM.',
     'Use filters to keep retrieval scoped to the right tenant, store, org, or domain.'
+  ],
+  s1: [
+    'watch() opens a change stream; filter operationType to only react to inserts, updates, deletes, or replaces.',
+    'Change stream events include operationType plus fullDocument when configured for inserts and updates.'
+  ],
+  s2: [
+    'Filter change events on fullDocument fields so only meaningful business events flow downstream.',
+    'Use numeric thresholds as numbers, not strings.'
+  ],
+  s3: [
+    'Stream processors usually read from a source, filter early, project the event shape, then write or route the result.',
+    'Keep only the fields the downstream alert, dashboard, or workflow needs.'
+  ],
+  s4: [
+    'Route processed events into an operational collection or handler that downstream apps can consume.',
+    'Real-time pipelines should be idempotent because events can be retried.'
   ]
 };
 
@@ -552,6 +571,80 @@ const WORLDS = [
         initial: ['pj', 'ms', 'vs']
       }
     ]
+  },
+
+  /* ============================================================ WORLD 6 */
+  {
+    id: 'streams',
+    icon: 'sparkle',
+    name: 'Real-Time Streams',
+    tagline: 'React as data changes',
+    blurb: 'Change Streams and Atlas Stream Processing turn operational writes into live workflows.',
+    tint: 'rgba(113,246,186,0.16)',
+    tintSolid: '#00ED64',
+    levels: [
+      {
+        id: 's1', title: 'Change Stream — watch inserts', kind: 'blocks',
+        prompt: 'Watch for new operational events as they are inserted.',
+        sub:    'Change streams let apps react to writes without polling.',
+        why:    'Change streams expose MongoDB writes as an ordered event stream. Apps can subscribe once and react to inserts, updates, replaces, and deletes in real time.',
+        snippet: [
+          'db.', { slot: 'col' }, '.watch([',
+          '\n  { ', { slot: 'stage' }, ': { operationType: ', { slot: 'evt' }, ' } }',
+          '\n])'
+        ],
+        bank: [
+          { id: 'col',   label: 'events',    kind: 'field', answer: 'col' },
+          { id: 'stage', label: '$match',    kind: 'stage', answer: 'stage' },
+          { id: 'evt',   label: '"insert"',  kind: 'value', answer: 'evt' },
+          { id: 'x1',    label: 'listen',    kind: 'op' },
+          { id: 'x2',    label: '$project',  kind: 'stage' },
+          { id: 'x3',    label: 'insert',    kind: 'value' }
+        ]
+      },
+      {
+        id: 's2', title: 'Change Stream — filter critical events', kind: 'fill',
+        prompt: 'Only react when the incoming event crosses the critical threshold.',
+        sub:    'Filter on fullDocument fields so low-priority changes never reach the handler.',
+        why:    'Filtering inside the change stream keeps downstream functions, queues, and dashboards focused on events that actually require action.',
+        snippet: [
+          'db.events.watch([',
+          '\n  { $match: { "fullDocument.priorityScore": { ', { blank: 'op' }, ': ', { blank: 'threshold' }, ' } } }',
+          '\n])'
+        ],
+        choices: {
+          op:        { options: ['$gte', '$gt', '$lte', '$eq'], answer: '$gte' },
+          threshold: { options: ['90', '"90"', '9', 'true'], answer: '90' }
+        }
+      },
+      {
+        id: 's3', title: 'Atlas Stream Processing — route alerts', kind: 'reorder',
+        prompt: 'Build a stream processor: read events, filter critical ones, shape alerts, then write them.',
+        sub:    '$source → $match → $project → $merge keeps the stream useful and app-ready.',
+        why:    'Atlas Stream Processing lets teams continuously transform and route operational events without building a separate stream-processing stack.',
+        stages: [
+          { id: 'src', code: '$source: { connectionName: "atlas", db: "app", coll: "events" }', sub: 'read the live event source', correct: 0 },
+          { id: 'mat', code: '$match: { priorityScore: { $gte: 90 } }', sub: 'keep critical events only', correct: 1 },
+          { id: 'prj', code: '$project: { _id: 0, eventId: 1, priorityScore: 1, alertType: 1, observedAt: "$$NOW" }', sub: 'shape alert payloads', correct: 2 },
+          { id: 'mrg', code: '$merge: { into: { db: "app", coll: "alerts" } }', sub: 'write routed alerts', correct: 3 }
+        ],
+        initial: ['mrg', 'prj', 'src', 'mat']
+      },
+      {
+        id: 's4', title: 'Stream output — alert collection', kind: 'fill',
+        prompt: 'Write processed stream alerts into the alerts collection for apps and dashboards.',
+        sub:    '$merge routes processed events back into MongoDB as operational alerts.',
+        why:    'Writing stream output into MongoDB keeps the real-time alert state queryable by dashboards, APIs, and downstream automation.',
+        snippet: [
+          '{ ', { blank: 'stage' }, ': { into: { db: "app", coll: ', { blank: 'coll' }, ' }, whenMatched: ', { blank: 'mode' }, ' } }'
+        ],
+        choices: {
+          stage: { options: ['$merge', '$out', '$insert', '$route'], answer: '$merge' },
+          coll:  { options: ['"alerts"', 'alerts', '"events"', '"archive"'], answer: '"alerts"' },
+          mode:  { options: ['"replace"', 'replace', '"drop"', '"ignore"'], answer: '"replace"' }
+        }
+      }
+    ]
   }
 ];
 
@@ -590,7 +683,19 @@ function createIndustryWorlds(profile) {
     });
   });
 
-  const [docs, query, agg, idxWorld, atlas] = worlds;
+  const [docs, query, agg, idxWorld, atlas, streams] = worlds;
+  const stream = Object.assign({
+    eventCollection: nouns.itemCollection || nouns.transactionPlural || 'events',
+    alertCollection: 'alerts',
+    eventPlural: nouns.transactionPlural || nouns.itemPlural || 'events',
+    criticalLabel: 'critical events',
+    scoreField: 'priorityScore',
+    threshold: 90,
+    alertType: 'critical_event',
+    sourceDb: 'app',
+    handler: 'routeCriticalEvent',
+    outcome: 'alert dashboards and downstream automation'
+  }, profile.stream || {});
 
   // Only apply generic text substitutions for levels that were NOT overridden
   if (!levelOverrides['d1']) {
@@ -668,6 +773,56 @@ function createIndustryWorlds(profile) {
   if (!levelOverrides['v4']) {
     atlas.levels[3].prompt = profile.name + ' RAG pipeline: scope by tenant or domain, retrieve semantically, then trim payload.';
     atlas.levels[3].why = 'MongoDB Atlas brings operational data, search, vector search, and app services together so ' + profile.name + ' teams can build AI features with fewer moving parts.';
+  }
+
+  streams.name = (profile.shortName || profile.name) + ' Streams';
+  streams.tagline = 'React in real time';
+  streams.blurb = 'Use Change Streams and Atlas Stream Processing to turn ' + stream.eventPlural + ' into live ' + stream.outcome + '.';
+  if (!levelOverrides['s1']) {
+    streams.levels[0].prompt = 'Watch for new ' + stream.eventPlural + ' as they are inserted.';
+    streams.levels[0].sub = 'Change streams let ' + profile.name + ' apps react to writes without polling.';
+    streams.levels[0].why = 'In ' + profile.name + ', teams need to react the moment important operational data lands. Change streams expose inserts, updates, replaces, and deletes as an ordered event stream.';
+    streams.levels[0].snippet = [
+      'db.', { slot: 'col' }, '.watch([',
+      '\n  { ', { slot: 'stage' }, ': { operationType: ', { slot: 'evt' }, ' } }',
+      '\n])'
+    ];
+    streams.levels[0].bank = [
+      { id: 'col', label: stream.eventCollection, kind: 'field', answer: 'col' },
+      { id: 'stage', label: '$match', kind: 'stage', answer: 'stage' },
+      { id: 'evt', label: '"insert"', kind: 'value', answer: 'evt' },
+      { id: 'x1', label: 'listen', kind: 'op' },
+      { id: 'x2', label: '$project', kind: 'stage' },
+      { id: 'x3', label: 'insert', kind: 'value' }
+    ];
+  }
+  if (!levelOverrides['s2']) {
+    streams.levels[1].prompt = 'Only react when incoming ' + stream.eventPlural + ' become ' + stream.criticalLabel + '.';
+    streams.levels[1].snippet = [
+      'db.' + stream.eventCollection + '.watch([',
+      '\n  { $match: { "fullDocument.' + stream.scoreField + '": { ', { blank: 'op' }, ': ', { blank: 'threshold' }, ' } } }',
+      '\n])'
+    ];
+    streams.levels[1].choices.threshold = { options: [String(stream.threshold), '"' + stream.threshold + '"', String(Math.max(1, Math.floor(stream.threshold / 10))), 'true'], answer: String(stream.threshold) };
+    streams.levels[1].why = 'Filtering on `fullDocument.' + stream.scoreField + '` inside the change stream keeps ' + profile.name + ' handlers focused on ' + stream.criticalLabel + ' instead of processing every write.';
+  }
+  if (!levelOverrides['s3']) {
+    streams.levels[2].prompt = 'Build a stream processor: read ' + stream.eventPlural + ', filter ' + stream.criticalLabel + ', shape alerts, then write them.';
+    streams.levels[2].stages = [
+      { id: 'src', code: '$source: { connectionName: "atlas", db: "' + stream.sourceDb + '", coll: "' + stream.eventCollection + '" }', sub: 'read the live ' + stream.eventCollection + ' source', correct: 0 },
+      { id: 'mat', code: '$match: { ' + stream.scoreField + ': { $gte: ' + stream.threshold + ' } }', sub: 'keep ' + stream.criticalLabel + ' only', correct: 1 },
+      { id: 'prj', code: '$project: { _id: 0, eventId: 1, ' + stream.scoreField + ': 1, alertType: "' + stream.alertType + '", observedAt: "$$NOW" }', sub: 'shape alert payloads', correct: 2 },
+      { id: 'mrg', code: '$merge: { into: { db: "' + stream.sourceDb + '", coll: "' + stream.alertCollection + '" } }', sub: 'write routed alerts', correct: 3 }
+    ];
+    streams.levels[2].why = 'Atlas Stream Processing continuously transforms ' + profile.name + ' events into operational outputs without a separate stream-processing tier.';
+  }
+  if (!levelOverrides['s4']) {
+    streams.levels[3].prompt = 'Write processed stream alerts into the ' + stream.alertCollection + ' collection for ' + stream.outcome + '.';
+    streams.levels[3].snippet = [
+      '{ ', { blank: 'stage' }, ': { into: { db: "' + stream.sourceDb + '", coll: ', { blank: 'coll' }, ' }, whenMatched: ', { blank: 'mode' }, ' } }'
+    ];
+    streams.levels[3].choices.coll = { options: ['"' + stream.alertCollection + '"', stream.alertCollection, '"' + stream.eventCollection + '"', '"archive"'], answer: '"' + stream.alertCollection + '"' };
+    streams.levels[3].why = 'Routing processed events into `' + stream.alertCollection + '` keeps ' + profile.name + ' real-time state queryable by dashboards, APIs, and downstream automation.';
   }
 
   return worlds;

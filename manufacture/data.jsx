@@ -8,6 +8,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
   promise: 'MongoDB connects equipment telemetry, asset documents, parts catalogs, work orders, and AI maintenance copilots in one flexible operational model.',
   searchPhrase: 'bearing temperature anomaly',
   nouns: { profile: 'asset', profilePlural: 'assets', profileCollection: 'assets', item: 'part', itemPlural: 'parts', itemCollection: 'parts', catalog: 'parts catalog', user: 'plant operator', transaction: 'sensor event', transactionPlural: 'sensor events', documentPlural: 'maintenance notes' },
+  stream: { eventCollection: 'sensorEvents', alertCollection: 'maintenanceAlerts', eventPlural: 'sensor events', criticalLabel: 'equipment-risk anomalies', scoreField: 'anomalyScore', threshold: 88, alertType: 'predictive_maintenance', sourceDb: 'factory', outcome: 'maintenance queues and plant-floor dashboards' },
   aha: [
     { title: 'AHA: Equipment context belongs with telemetry', message: 'When sensor readings live alongside asset metadata, teams diagnose problems faster without joining across systems.' },
     { title: 'AHA: Flexible schemas handle every machine model', message: 'Different equipment types have different attributes. MongoDB documents adapt without schema migrations.' },

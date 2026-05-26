@@ -8,6 +8,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
   promise: 'MongoDB powers retail experiences by joining product catalogs, inventory, carts, orders, personalization, search, and recommendations.',
   searchPhrase: 'waterproof hiking jacket',
   nouns: { profile: 'shopper', profilePlural: 'shoppers', profileCollection: 'customers', item: 'product', itemPlural: 'products', itemCollection: 'products', catalog: 'product catalog', user: 'store associate', transaction: 'order', transactionPlural: 'orders', documentPlural: 'product descriptions' },
+  stream: { eventCollection: 'orderEvents', alertCollection: 'opsAlerts', eventPlural: 'order and inventory events', criticalLabel: 'fulfillment-risk events', scoreField: 'priorityScore', threshold: 85, alertType: 'fulfillment_risk', sourceDb: 'retail', outcome: 'store operations dashboards and recommendation workflows' },
   aha: [
     { title: 'AHA: Product catalogs are naturally document-shaped', message: 'Shoes have sizes, electronics have specs, food has nutrition — MongoDB documents hold any product shape without a universal table.' },
     { title: 'AHA: Personalization needs changing signals', message: 'Shopper preferences, cart history, and recommendations evolve constantly — flexible documents keep up without migrations.' },

@@ -8,6 +8,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
   promise: 'MongoDB helps financial institutions unify customer 360, transaction streams, fraud signals, audit evidence, and real-time AI experiences.',
   searchPhrase: 'suspicious wire transfer',
   nouns: { profile: 'customer', profilePlural: 'customers', profileCollection: 'customers', item: 'account product', itemPlural: 'account products', itemCollection: 'products', catalog: 'product catalog', user: 'relationship manager', transaction: 'transaction', transactionPlural: 'transactions', documentPlural: 'policy and disclosure documents' },
+  stream: { eventCollection: 'transactions', alertCollection: 'fraudAlerts', eventPlural: 'transaction events', criticalLabel: 'high-risk fraud signals', scoreField: 'riskScore', threshold: 90, alertType: 'fraud_risk', sourceDb: 'banking', outcome: 'fraud queues and compliance dashboards' },
   aha: [
     { title: 'AHA: Customer 360 needs flexible connected data', message: 'A single customer document can hold KYC, preferences, risk signals, and relationship history — no joins required at read time.' },
     { title: 'AHA: Fraud signals change faster than schemas', message: 'New fraud patterns emerge weekly. MongoDB documents absorb new signal fields without downtime or migrations.' },

@@ -8,6 +8,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
   promise: 'MongoDB fits cyber workloads by combining high-volume events, evolving threat intel, entity context, search, and AI investigation workflows.',
   searchPhrase: 'credential stuffing indicator',
   nouns: { profile: 'asset', profilePlural: 'assets', profileCollection: 'assets', item: 'alert rule', itemPlural: 'alert rules', itemCollection: 'detections', catalog: 'detection catalog', user: 'security analyst', transaction: 'security event', transactionPlural: 'security events', documentPlural: 'threat intel reports' },
+  stream: { eventCollection: 'securityEvents', alertCollection: 'incidentAlerts', eventPlural: 'security events', criticalLabel: 'high-risk incidents', scoreField: 'riskScore', threshold: 90, alertType: 'incident_response', sourceDb: 'security', outcome: 'SOC queues and incident response automation' },
   aha: [
     { title: 'AHA: Threat data evolves constantly', message: 'New IOCs, TTPs, and actor profiles appear daily. MongoDB documents absorb new threat fields without schema migrations.' },
     { title: 'AHA: One asset document can carry context and risk', message: 'Combining asset metadata, vulnerabilities, and ownership in one document accelerates triage decisions.' },

@@ -8,6 +8,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
   promise: 'MongoDB lets healthcare teams model patient 360, encounters, care plans, consent, research data, and AI search with privacy-aware flexibility.',
   searchPhrase: 'diabetes care plan',
   nouns: { profile: 'patient', profilePlural: 'patients', profileCollection: 'patients', item: 'care plan', itemPlural: 'care plans', itemCollection: 'carePlans', catalog: 'care catalog', user: 'clinician', transaction: 'encounter', transactionPlural: 'encounters', documentPlural: 'clinical notes' },
+  stream: { eventCollection: 'labResults', alertCollection: 'clinicalAlerts', eventPlural: 'clinical events', criticalLabel: 'critical lab results', scoreField: 'severityScore', threshold: 90, alertType: 'critical_lab', sourceDb: 'care', outcome: 'clinician notifications and care-team dashboards' },
   aha: [
     { title: 'AHA: Patient context changes over time', message: 'A patient document grows with each encounter, diagnosis, and consent update — MongoDB handles evolving shapes naturally.' },
     { title: 'AHA: Documents match clinical records naturally', message: 'Encounter notes, lab results, and care plans are inherently document-shaped — no forced normalization.' },

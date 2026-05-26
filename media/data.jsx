@@ -8,6 +8,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
   promise: 'MongoDB fits media platforms by combining content metadata, audience events, entitlements, recommendations, search, and AI content workflows.',
   searchPhrase: 'space documentary',
   nouns: { profile: 'viewer', profilePlural: 'viewers', profileCollection: 'viewers', item: 'title', itemPlural: 'titles', itemCollection: 'titles', catalog: 'content catalog', user: 'content editor', transaction: 'viewing event', transactionPlural: 'viewing events', documentPlural: 'content metadata' },
+  stream: { eventCollection: 'viewingEvents', alertCollection: 'experienceAlerts', eventPlural: 'viewing and entitlement events', criticalLabel: 'experience-impacting events', scoreField: 'priorityScore', threshold: 80, alertType: 'viewer_experience', sourceDb: 'media', outcome: 'personalization and operations dashboards' },
   aha: [
     { title: 'AHA: Content metadata is rich and variable', message: 'Movies have cast and ratings, podcasts have episodes, live events have schedules — MongoDB documents hold any content shape.' },
     { title: 'AHA: Audience signals drive personalization', message: 'Watch history, preferences, and engagement signals evolve per session. Flexible documents keep recommendations fresh.' },

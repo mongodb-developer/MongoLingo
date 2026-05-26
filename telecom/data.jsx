@@ -8,6 +8,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
   promise: 'MongoDB helps telecom teams unify subscriber profiles, network events, device data, support interactions, and churn-prevention AI.',
   searchPhrase: 'dropped call troubleshooting',
   nouns: { profile: 'subscriber', profilePlural: 'subscribers', profileCollection: 'subscribers', item: 'plan', itemPlural: 'plans', itemCollection: 'plans', catalog: 'plan catalog', user: 'support agent', transaction: 'network event', transactionPlural: 'network events', documentPlural: 'support articles' },
+  stream: { eventCollection: 'networkEvents', alertCollection: 'nocAlerts', eventPlural: 'network events', criticalLabel: 'service-impacting drops', scoreField: 'impactScore', threshold: 85, alertType: 'network_degradation', sourceDb: 'telecom', outcome: 'NOC dashboards and field-response workflows' },
   aha: [
     { title: 'AHA: Subscriber 360 needs many data shapes', message: 'Usage, billing, devices, support tickets, and preferences — one subscriber document holds it all for instant personalization.' },
     { title: 'AHA: Network events arrive at massive scale', message: 'MongoDB handles high-velocity ingestion of CDRs, handover events, and quality metrics with time-series and TTL indexes.' },

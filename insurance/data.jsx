@@ -8,6 +8,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
   promise: 'MongoDB supports policyholder 360, claims, evidence, risk scoring, document search, and AI-assisted underwriting or claims handling.',
   searchPhrase: 'water damage claim',
   nouns: { profile: 'policyholder', profilePlural: 'policyholders', profileCollection: 'policyholders', item: 'policy', itemPlural: 'policies', itemCollection: 'policies', catalog: 'policy catalog', user: 'claims adjuster', transaction: 'claim', transactionPlural: 'claims', documentPlural: 'claim documents' },
+  stream: { eventCollection: 'claims', alertCollection: 'claimAlerts', eventPlural: 'claim events', criticalLabel: 'high-severity claims', scoreField: 'severityScore', threshold: 80, alertType: 'claim_triage', sourceDb: 'insurance', outcome: 'triage queues and adjuster dashboards' },
   aha: [
     { title: 'AHA: Claims combine structured and unstructured evidence', message: 'Photos, adjuster notes, repair estimates, and IoT sensor data live together in one claim document — no scattered file stores.' },
     { title: 'AHA: Policies vary by product and region', message: 'Auto, home, life, and commercial policies each have unique fields. MongoDB documents adapt without a universal table.' },

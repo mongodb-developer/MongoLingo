@@ -624,6 +624,11 @@ function BlocksPreview({ level, filled, bankById }) {
   if (completeAll) {
     const rendered = renderSnippet(level.snippet, fl);
     const collection = inferCollectionFromText(rendered, level);
+    // Stream / change-stream preview
+    const streamPreview = streamPreviewForLevel(level);
+    if (streamPreview) {
+      return <FakeDocs docs={streamPreview.docs} note={streamPreview.note} />;
+    }
     if (/\.insertOne\s*\(/.test(rendered)) {
       return <FakeDocs docs={[docFromInsertedSnippet(rendered, collection, level)]} note="acknowledged: true · insertedId: ObjectId(...)" />;
     }
@@ -928,6 +933,61 @@ function sampleDocsForLevel(level, collection, count = 3, options = {}) {
     ];
   }
   return alignDocsToQuery(docs.slice(0, n), queryHints, collection, prompt);
+}
+
+function streamPreviewForLevel(level) {
+  const text = `${level.title || ''} ${level.prompt || ''}`.toLowerCase();
+  if (!/watch|stream|change|source|merge|alert|operationtype/i.test(text)) return null;
+
+  if (/watch for new|inserts|operationtype|watch a collection|change stream.*watch/i.test(text)) {
+    const col = level.bank?.find(b => b.answer === 'col')?.label || 'events';
+    return {
+      kind: 'change_stream',
+      note: `// Change stream opened on db.${col} — watching for inserts`,
+      docs: [
+        { operationType: 'insert', ns: `app.${col}`, fullDocument: '{ … event fields … }', clusterTime: '2026-05-26T09:41:00Z' },
+        { operationType: 'insert', ns: `app.${col}`, fullDocument: '{ … next event … }', clusterTime: '2026-05-26T09:41:18Z' }
+      ]
+    };
+  }
+  if (/filter critical|cross the critical|only react|fullDocument/i.test(text)) {
+    const col = (level.snippet || []).join('').match(/db\.(\w+)\.watch/)?.[1] || 'events';
+    const scoreField = (level.snippet || []).join('').match(/"fullDocument\.(\w+)"/)?.[1] || 'priorityScore';
+    const threshold = level.choices?.threshold?.answer || '90';
+    return {
+      kind: 'change_stream',
+      note: `// Only events where fullDocument.${scoreField} ≥ ${threshold} pass through`,
+      docs: [
+        { operationType: 'insert', ns: `app.${col}`, [scoreField]: Number(threshold) + 2, clusterTime: '2026-05-26T09:42:05Z' },
+        { operationType: 'insert', ns: `app.${col}`, [scoreField]: Number(threshold) + 7, clusterTime: '2026-05-26T09:43:12Z' }
+      ]
+    };
+  }
+  if (/stream processing|route alert|\$source|\$merge/i.test(text)) {
+    const scoreField = level.stages?.find(s => s.code.includes('$match'))?.code.match(/\$gte:\s*(\d+)/)?.[1] ? 
+      (level.stages.find(s => s.code.includes('$match'))?.code.match(/([\w]+):\s*\{\s*\$gte/)?.[1] || 'priorityScore') : 'priorityScore';
+    const alertType = level.stages?.find(s => s.code.includes('alertType'))?.code.match(/"([\w_]+)"/)?.[1] || 'critical_event';
+    return {
+      kind: 'stream_output',
+      note: `// Stream processor wrote routed alerts to the alerts collection`,
+      docs: [
+        { eventId: 'evt_9042', [scoreField]: 94, alertType, observedAt: '2026-05-26T09:42:01Z' },
+        { eventId: 'evt_9041', [scoreField]: 91, alertType, observedAt: '2026-05-26T09:41:48Z' },
+        { eventId: 'evt_9040', [scoreField]: 88, alertType, observedAt: '2026-05-26T09:40:33Z' }
+      ]
+    };
+  }
+  if (/\$merge|alert collection|stream output/i.test(text)) {
+    const alertType = level.choices?.coll?.answer?.replace(/^"|"$/g, '') || 'alerts';
+    return {
+      kind: 'stream_output',
+      note: `// Processed events merged into db.app.${alertType}`,
+      docs: [
+        { eventId: 'evt_9042', alertType: 'critical_event', whenMatched: 'replace', mergedAt: '2026-05-26T09:42:01Z' }
+      ]
+    };
+  }
+  return null;
 }
 
 function recentTopNDocsForContext(level, collection) {

@@ -8,6 +8,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
   promise: 'MongoDB supports player profiles, inventories, sessions, matchmaking, telemetry, live events, and AI-powered moderation or personalization.',
   searchPhrase: 'toxic chat report',
   nouns: { profile: 'player', profilePlural: 'players', profileCollection: 'players', item: 'item', itemPlural: 'items', itemCollection: 'items', catalog: 'item catalog', user: 'game master', transaction: 'match event', transactionPlural: 'match events', documentPlural: 'player reports' },
+  stream: { eventCollection: 'matchEvents', alertCollection: 'antiCheatAlerts', eventPlural: 'match events', criticalLabel: 'suspicious play patterns', scoreField: 'suspicionScore', threshold: 85, alertType: 'anti_cheat_review', sourceDb: 'gaming', outcome: 'anti-cheat queues and live-ops dashboards' },
   aha: [
     { title: 'AHA: Player profiles are living documents', message: 'Inventory, achievements, preferences, and social graph evolve every session — MongoDB documents grow naturally with the player.' },
     { title: 'AHA: Inventories and events change constantly', message: 'New items, seasonal events, and balance patches arrive weekly. Flexible documents absorb changes without downtime.' },
