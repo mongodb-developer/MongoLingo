@@ -630,7 +630,7 @@ function BlocksPreview({ level, filled, bankById }) {
     const note = rendered.includes('$search')
       ? `2 ${humanizeCollection(collection)} matched by Atlas Search`
       : rendered.includes('$sort') || rendered.includes('$limit')
-        ? `${Math.min(3, inferLimit(rendered) || 3)} ${humanizeCollection(collection)} · sorted and limited`
+        ? `${Math.min(5, inferLimit(rendered) || 3)} ${humanizeCollection(collection)} · sorted and limited`
         : `3 ${humanizeCollection(collection)} matched`;
     return <FakeDocs docs={sampleDocsForLevel(level, collection, inferLimit(rendered) || 3, { queryText: rendered })} note={note} />;
   }
@@ -847,7 +847,10 @@ function sampleDocsForLevel(level, collection, count = 3, options = {}) {
   const queryHints = extractQueryHints(query);
 
   let docs;
-  if (options.rag) {
+  const recentDocs = recentTopNDocsForContext(level, collection);
+  if (recentDocs) {
+    docs = recentDocs;
+  } else if (options.rag) {
     docs = ragDocsForContext(level, collection);
   } else if (options.vector || /vector|embedding|similar|nearest|rag/.test(prompt)) {
     docs = vectorDocsForContext(level, collection);
@@ -925,6 +928,99 @@ function sampleDocsForLevel(level, collection, count = 3, options = {}) {
     ];
   }
   return alignDocsToQuery(docs.slice(0, n), queryHints, collection, prompt);
+}
+
+function recentTopNDocsForContext(level, collection) {
+  const text = `${collection || ''} ${level.title || ''} ${level.prompt || ''}`.toLowerCase();
+  if (!/\$sort\s*\+\s*\$limit|most recent|recently|latest|newest|top-n/.test(text)) return null;
+
+  if (/networkevents|drop event|worst cells|call_drop/.test(text)) {
+    return [
+      { _id: 'evt_9005', cellId: 'CELL-4491', type: 'call_drop', impactScore: 98, eventTime: '2026-05-26T09:42:18Z' },
+      { _id: 'evt_9004', cellId: 'CELL-1187', type: 'call_drop', impactScore: 94, eventTime: '2026-05-26T09:39:02Z' },
+      { _id: 'evt_9003', cellId: 'CELL-7730', type: 'call_drop', impactScore: 91, eventTime: '2026-05-26T09:35:47Z' },
+      { _id: 'evt_9002', cellId: 'CELL-2209', type: 'call_drop', impactScore: 88, eventTime: '2026-05-26T09:31:14Z' },
+      { _id: 'evt_9001', cellId: 'CELL-6054', type: 'call_drop', impactScore: 86, eventTime: '2026-05-26T09:28:39Z' }
+    ];
+  }
+  if (/labresults|critical lab|lab result/.test(text)) {
+    return [
+      { _id: 'lab_3175', patientId: 'PAT-4182', test: 'potassium', value: 6.4, severity: 'critical', resultTime: '2026-05-26T08:58:00Z' },
+      { _id: 'lab_3174', patientId: 'PAT-2039', test: 'troponin', value: 0.19, severity: 'critical', resultTime: '2026-05-26T08:44:00Z' },
+      { _id: 'lab_3173', patientId: 'PAT-7710', test: 'glucose', value: 412, severity: 'critical', resultTime: '2026-05-26T08:36:00Z' }
+    ];
+  }
+  if (/sensor|reading|sensorevents/.test(text)) {
+    return [
+      { _id: 'sen_8841', assetId: 'CNC-14', metric: 'vibration_mm_s', value: 8.7, timestamp: '2026-05-26T09:41:00Z' },
+      { _id: 'sen_8840', assetId: 'PRESS-07', metric: 'oil_temp_c', value: 91.2, timestamp: '2026-05-26T09:40:45Z' },
+      { _id: 'sen_8839', assetId: 'ROBOT-22', metric: 'torque_nm', value: 146, timestamp: '2026-05-26T09:40:10Z' },
+      { _id: 'sen_8838', assetId: 'OVEN-03', metric: 'temperature_c', value: 182.5, timestamp: '2026-05-26T09:39:58Z' },
+      { _id: 'sen_8837', assetId: 'LINE-A', metric: 'throughput_ppm', value: 72, timestamp: '2026-05-26T09:39:21Z' }
+    ];
+  }
+  if (/matchevents|recent matches|completed matches/.test(text)) {
+    return [
+      { _id: 'match_7420', matchId: 'M-7420', mode: 'ranked', winnerId: 'P-1007', endedAt: '2026-05-26T09:40:12Z' },
+      { _id: 'match_7419', matchId: 'M-7419', mode: 'arena', winnerId: 'P-1182', endedAt: '2026-05-26T09:38:55Z' },
+      { _id: 'match_7418', matchId: 'M-7418', mode: 'ranked', winnerId: 'P-1044', endedAt: '2026-05-26T09:37:09Z' },
+      { _id: 'match_7417', matchId: 'M-7417', mode: 'co_op', winnerId: 'P-1320', endedAt: '2026-05-26T09:34:41Z' },
+      { _id: 'match_7416', matchId: 'M-7416', mode: 'ranked', winnerId: 'P-1198', endedAt: '2026-05-26T09:32:18Z' }
+    ];
+  }
+  if (/alerts|fraud alert/.test(text)) {
+    const security = /security|detectedat|attack|risk/.test(text);
+    return security ? [
+      { _id: 'alrt_6110', type: 'attack', riskScore: 96, sourceIp: '203.0.113.18', detectedAt: '2026-05-26T09:43:10Z' },
+      { _id: 'alrt_6109', type: 'attack', riskScore: 92, sourceIp: '198.51.100.44', detectedAt: '2026-05-26T09:39:28Z' },
+      { _id: 'alrt_6108', type: 'attack', riskScore: 89, sourceIp: '192.0.2.77', detectedAt: '2026-05-26T09:36:02Z' },
+      { _id: 'alrt_6107', type: 'attack', riskScore: 84, sourceIp: '203.0.113.91', detectedAt: '2026-05-26T09:33:45Z' },
+      { _id: 'alrt_6106', type: 'attack', riskScore: 79, sourceIp: '198.51.100.12', detectedAt: '2026-05-26T09:30:11Z' }
+    ] : [
+      { _id: 'fraud_5105', accountId: 'ACC-4421', amount: 12840.55, riskScore: 97, alertTime: '2026-05-26T09:42:33Z' },
+      { _id: 'fraud_5104', accountId: 'ACC-1188', amount: 7300.00, riskScore: 93, alertTime: '2026-05-26T09:37:21Z' },
+      { _id: 'fraud_5103', accountId: 'ACC-9074', amount: 21990.00, riskScore: 91, alertTime: '2026-05-26T09:35:05Z' },
+      { _id: 'fraud_5102', accountId: 'ACC-3310', amount: 5400.75, riskScore: 88, alertTime: '2026-05-26T09:31:48Z' },
+      { _id: 'fraud_5101', accountId: 'ACC-6629', amount: 9800.20, riskScore: 86, alertTime: '2026-05-26T09:29:12Z' }
+    ];
+  }
+  if (/claims|filed claims|filedat/.test(text)) {
+    return [
+      { _id: 'clm_4525', claimId: 'CLM-4525', type: 'auto', status: 'open', estimatedLoss: 42500, filedAt: '2026-05-26T09:25:00Z' },
+      { _id: 'clm_4524', claimId: 'CLM-4524', type: 'home', status: 'open', estimatedLoss: 64000, filedAt: '2026-05-26T08:58:00Z' },
+      { _id: 'clm_4523', claimId: 'CLM-4523', type: 'property', status: 'open', estimatedLoss: 51000, filedAt: '2026-05-26T08:41:00Z' },
+      { _id: 'clm_4522', claimId: 'CLM-4522', type: 'auto', status: 'open', estimatedLoss: 37500, filedAt: '2026-05-26T08:17:00Z' },
+      { _id: 'clm_4521', claimId: 'CLM-4521', type: 'home', status: 'open', estimatedLoss: 28500, filedAt: '2026-05-26T07:54:00Z' }
+    ];
+  }
+  if (/titles|new releases|added titles/.test(text)) {
+    return [
+      { _id: 'ttl_8801', title: 'Northern Lights', genre: 'drama', active: true, addedAt: '2026-05-26T09:20:00Z' },
+      { _id: 'ttl_8800', title: 'Signal Lost', genre: 'thriller', active: true, addedAt: '2026-05-26T08:55:00Z' },
+      { _id: 'ttl_8799', title: 'Chef\'s Table: Seoul', genre: 'documentary', active: true, addedAt: '2026-05-26T08:35:00Z' },
+      { _id: 'ttl_8798', title: 'Mars Relay', genre: 'sci-fi', active: true, addedAt: '2026-05-26T08:10:00Z' },
+      { _id: 'ttl_8797', title: 'The Last Harbor', genre: 'mystery', active: true, addedAt: '2026-05-26T07:48:00Z' }
+    ];
+  }
+  if (/products|newest arrivals|recently added products/.test(text)) {
+    return [
+      { _id: 'prod_9405', sku: 'JKT-204', name: 'Trail Pro Jacket', category: 'outerwear', addedAt: '2026-05-26T09:22:00Z' },
+      { _id: 'prod_9404', sku: 'BOT-118', name: 'Insulated Bottle', category: 'gear', addedAt: '2026-05-26T08:51:00Z' },
+      { _id: 'prod_9403', sku: 'SHO-773', name: 'Summit Runner', category: 'footwear', addedAt: '2026-05-26T08:27:00Z' },
+      { _id: 'prod_9402', sku: 'BAG-221', name: 'Daypack 22L', category: 'packs', addedAt: '2026-05-26T08:02:00Z' },
+      { _id: 'prod_9401', sku: 'CAP-605', name: 'Rain Cap', category: 'accessories', addedAt: '2026-05-26T07:39:00Z' }
+    ];
+  }
+  if (/customers|customer records|updated customer/.test(text)) {
+    return [
+      { _id: 'cust_7821', customerId: 'C-7821', segment: 'enterprise', status: 'active', updatedAt: '2026-05-26T09:24:00Z' },
+      { _id: 'cust_7819', customerId: 'C-7819', segment: 'priority', status: 'active', updatedAt: '2026-05-26T09:11:00Z' },
+      { _id: 'cust_7816', customerId: 'C-7816', segment: 'growth', status: 'review', updatedAt: '2026-05-26T08:59:00Z' },
+      { _id: 'cust_7812', customerId: 'C-7812', segment: 'enterprise', status: 'active', updatedAt: '2026-05-26T08:37:00Z' },
+      { _id: 'cust_7808', customerId: 'C-7808', segment: 'self_serve', status: 'active', updatedAt: '2026-05-26T08:05:00Z' }
+    ];
+  }
+  return null;
 }
 
 function extractQueryHints(queryText) {
@@ -1081,6 +1177,13 @@ function sampleGroupedDocsForLevel(level, collection) {
 
 function sampleJoinedDocsForLevel(level) {
   const prompt = `${level.title || ''} ${level.prompt || ''}`.toLowerCase();
+  if (/transaction|txn|risk tier|fraud|customer profile/.test(prompt)) {
+    return [
+      { txnId: 'TXN-9042', amount: 12840.55, riskTier: 'high' },
+      { txnId: 'TXN-9043', amount: 7300.00, riskTier: 'medium' },
+      { txnId: 'TXN-9044', amount: 21990.00, riskTier: 'high' }
+    ];
+  }
   if (/owner|employee/.test(prompt)) {
     return [
       { company: 'Ada Labs', ownerName: 'Grace Hopper', healthScore: 96 },
