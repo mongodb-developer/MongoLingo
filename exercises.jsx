@@ -652,6 +652,11 @@ function FillPreview({ level, filled }) {
   const rendered = renderFillSnippet(level, filledValues);
   const collection = inferCollectionFromText(rendered, level);
 
+  const streamPreview = streamPreviewForLevel(level);
+  if (streamPreview) {
+    return <FakeDocs docs={streamPreview.docs} note={streamPreview.note} />;
+  }
+
   if (/\.updateOne\s*\(/.test(rendered)) {
     const field = stripQuotes(choices.field?.answer || 'updatedField');
     const val = parsePreviewValue(choices.val?.answer || 'true');
@@ -711,6 +716,10 @@ function ReorderPreview({ level, order, stageMap }) {
   if (!inOrder) return <div className="ml-empty">Pipeline isn't in order yet — preview waiting.</div>;
   const pipelineText = level.stages.map(s => s.code).join('\n');
   const collection = inferCollectionFromText(pipelineText, level);
+  const streamPreview = streamPreviewForLevel(level);
+  if (streamPreview) {
+    return <FakeDocs docs={streamPreview.docs} note={streamPreview.note} />;
+  }
   if (pipelineText.includes('$vectorSearch')) {
     return <FakeDocs docs={sampleDocsForLevel(level, collection, 3, { vector: true, rag: true, queryText: pipelineText })} note="3 chunks ready to send to the LLM" />;
   }
@@ -964,16 +973,17 @@ function streamPreviewForLevel(level) {
     };
   }
   if (/stream processing|route alert|\$source|\$merge/i.test(text)) {
-    const scoreField = level.stages?.find(s => s.code.includes('$match'))?.code.match(/\$gte:\s*(\d+)/)?.[1] ? 
-      (level.stages.find(s => s.code.includes('$match'))?.code.match(/([\w]+):\s*\{\s*\$gte/)?.[1] || 'priorityScore') : 'priorityScore';
+    const matchStage = level.stages?.find(s => s.code.includes('$match'))?.code || '';
+    const scoreField = matchStage.match(/([\w]+):\s*\{\s*\$gte/)?.[1] || 'priorityScore';
+    const threshold = Number(matchStage.match(/\$gte:\s*(\d+)/)?.[1] || 90);
     const alertType = level.stages?.find(s => s.code.includes('alertType'))?.code.match(/"([\w_]+)"/)?.[1] || 'critical_event';
     return {
       kind: 'stream_output',
-      note: `// Stream processor wrote routed alerts to the alerts collection`,
+      note: `// Stream processor wrote routed alerts where ${scoreField} ≥ ${threshold}`,
       docs: [
-        { eventId: 'evt_9042', [scoreField]: 94, alertType, observedAt: '2026-05-26T09:42:01Z' },
-        { eventId: 'evt_9041', [scoreField]: 91, alertType, observedAt: '2026-05-26T09:41:48Z' },
-        { eventId: 'evt_9040', [scoreField]: 88, alertType, observedAt: '2026-05-26T09:40:33Z' }
+        { eventId: 'evt_9042', [scoreField]: threshold + 7, alertType, observedAt: '2026-05-26T09:42:01Z' },
+        { eventId: 'evt_9041', [scoreField]: threshold + 3, alertType, observedAt: '2026-05-26T09:41:48Z' },
+        { eventId: 'evt_9040', [scoreField]: threshold, alertType, observedAt: '2026-05-26T09:40:33Z' }
       ]
     };
   }
