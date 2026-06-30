@@ -1343,6 +1343,13 @@ code, pre, .mono { font-family: var(--ml-font-mono); }
   border-color: var(--ml-border-green);
   background: rgba(0,237,100,0.06);
 }
+.ml-lb-row--status {
+  display: block;
+  text-align: center;
+  color: var(--ml-text-dim);
+  font-style: italic;
+}
+.ml-lb-row--status .ml-lb-name { font-weight: 500; }
 .ml-lb-rank {
   font-family: var(--ml-font-mono);
   font-size: 13px;

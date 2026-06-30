@@ -21,7 +21,17 @@
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
+  <!--
+    Optional backend wiring. Set this to your deployed Vercel backend to
+    enable persisted users + a shared leaderboard, e.g.
+      window.MONGOLINGO_API_BASE = 'https://mongolingo-api.vercel.app/api';
+    Leave empty to run as a pure static site with the built-in stub leaderboard.
+    For local testing against `vercel dev`: 'http://localhost:3000/api'.
+  -->
+  <script>window.MONGOLINGO_API_BASE = 'https://mongolingo-backend.vercel.app/api';</script>
+
   <script src="icons.js"></script>
+  <script type="text/babel" src="api.jsx"></script>
   <script type="text/babel" src="tweaks-panel.jsx"></script>
   <script type="text/babel" src="data.jsx"></script>
   <!-- Industry content packs -->

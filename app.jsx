@@ -143,7 +143,32 @@ function App() {
     setProfile(completeProfile);
     setIndustryId(completeProfile.selectedPackId || 'general');
     setView({ name: 'home' });
+    // Register the learner with the optional backend (no-op if API_BASE unset).
+    if (window.MongoLingoAPI) {
+      window.MongoLingoAPI.registerUser({
+        name: completeProfile.learnerName,
+        company: completeProfile.company,
+        pack: completeProfile.selectedPackId || 'general'
+      });
+    }
   }
+
+  // Debounced score sync to the optional backend whenever progress changes.
+  useEffect_(() => {
+    if (!window.MongoLingoAPI || !window.MongoLingoAPI.apiEnabled()) return;
+    if (!profile.onboardingComplete) return;
+    const t = setTimeout(() => {
+      window.MongoLingoAPI.submitScore({
+        xp: state.xp,
+        leaves: state.leaves,
+        streak: state.streak || 0,
+        pack: industryId,
+        name: profile.learnerName,
+        company: profile.company
+      });
+    }, 800);
+    return () => clearTimeout(t);
+  }, [state.xp, state.leaves, state.streak, industryId, profile.onboardingComplete]);
 
   function changeAssignment() {
     if (hasAnyProgress(state)) {
@@ -192,7 +217,7 @@ function App() {
                  }} />;
       break;
     case 'leaderboard':
-      screen = <LeaderboardScreen totalXp={state.xp} leaves={state.leaves} />;
+      screen = <LeaderboardScreen totalXp={state.xp} leaves={state.leaves} name={profile.learnerName || 'You'} pack={industryId} />;
       break;
     default:
       screen = profile.onboardingComplete

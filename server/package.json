@@ -1,0 +1,17 @@
+{
+  "name": "mongolingo-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MongoLingo Vercel backend — user registration and leaderboard orchestration on MongoDB Atlas.",
+  "type": "module",
+  "scripts": {
+    "start": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "mongodb": "latest"
+  },
+  "devDependencies": {
+    "vercel": "^39.0.0"
+  }
+}

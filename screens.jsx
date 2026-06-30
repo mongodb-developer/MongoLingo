@@ -755,23 +755,65 @@ const STUB_LEADERS = [
   { name: 'Donald K.',  xp: 2018, leaves: 9  }
 ];
 
-function LeaderboardScreen({ totalXp, leaves, name = 'Ada L.' }) {
+function LeaderboardScreen({ totalXp, leaves, name = 'Ada L.', pack }) {
   const me = { name: 'You (' + name + ')', xp: totalXp, leaves, me: true };
-  const board = [...STUB_LEADERS, me]
+  const stubBoard = [...STUB_LEADERS, me]
     .sort((a, b) => b.xp - a.xp)
     .slice(0, 5);
+
+  // Live board from the backend (when configured); falls back to the stub
+  // ONLY when no backend is configured. When the API is enabled we show a
+  // loading state, then real data (or an empty/error state) — never the stub.
+  const apiEnabled = !!(window.MongoLingoAPI && window.MongoLingoAPI.apiEnabled());
+  const [liveBoard, setLiveBoard] = u_s(null);
+  const [status, setStatus] = u_s(apiEnabled ? 'loading' : 'stub'); // loading | ready | error | stub
+
+  u_e(() => {
+    if (!apiEnabled) return;
+    let cancelled = false;
+    setStatus('loading');
+    window.MongoLingoAPI
+      .fetchLeaderboard({ pack, limit: 5 })
+      .then((leaders) => {
+        if (cancelled) return;
+        if (!leaders) { setStatus('error'); return; }
+        const myId = window.MongoLingoAPI.getUserId();
+        setLiveBoard(leaders.map((row) => ({
+          name: row.name || 'Anonymous',
+          xp: row.xp || 0,
+          leaves: row.leaves || 0,
+          me: row.userId === myId
+        })));
+        setStatus('ready');
+      });
+    return () => { cancelled = true; };
+  }, [apiEnabled, pack, totalXp, leaves]);
+
+  const board = status === 'stub' ? stubBoard : (liveBoard || []);
+  const live = apiEnabled;
 
   return (
     <div className="ml-leaderboard">
       <h2>Weekly leaderboard</h2>
-      <p>Top five MongoLingo learners this week. Resets every Monday.</p>
+      <p>{live
+        ? 'Top MongoLingo learners — live from the leaderboard service.'
+        : 'Top five MongoLingo learners this week. Resets every Monday.'}</p>
       <div className="ml-lb-list">
-        {board.map((row, i) => (
-          <div key={row.name} className="ml-lb-row" data-rank={i + 1} data-me={!!row.me}>
+        {status === 'loading' && (
+          <div className="ml-lb-row ml-lb-row--status"><div className="ml-lb-name">Loading leaderboard…</div></div>
+        )}
+        {status === 'error' && (
+          <div className="ml-lb-row ml-lb-row--status"><div className="ml-lb-name">Leaderboard unavailable. Try again later.</div></div>
+        )}
+        {(status === 'ready' || status === 'stub') && board.length === 0 && (
+          <div className="ml-lb-row ml-lb-row--status"><div className="ml-lb-name">No scores yet — be the first!</div></div>
+        )}
+        {(status === 'ready' || status === 'stub') && board.map((row, i) => (
+          <div key={(row.name || 'row') + i} className="ml-lb-row" data-rank={i + 1} data-me={!!row.me}>
             <div className="ml-lb-rank">#{i + 1}</div>
             <div className="ml-lb-name">{row.name}</div>
             <div className="ml-lb-leaves"><LeafIcon size={12} color="var(--lg-spring)" /> {row.leaves}</div>
-            <div className="ml-lb-xp">{row.xp.toLocaleString()} XP</div>
+            <div className="ml-lb-xp">{(row.xp || 0).toLocaleString()} XP</div>
           </div>
         ))}
       </div>
