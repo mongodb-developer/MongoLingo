@@ -1,0 +1,11 @@
+{
+  "name": "mongolingo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate:data-agent": "node scripts/validate-industry-data.mjs"
+  },
+  "dependencies": {
+    "@console-agent/agent": "^1.2.0"
+  }
+}

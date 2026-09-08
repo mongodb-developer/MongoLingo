@@ -171,6 +171,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     /* ===== WORLD 3: Aggregation Pipeline ===== */
     a1: {
       title: 'ARPU by plan tier', kind: 'reorder',
+      collection: 'billingRecords',
       prompt: 'Compute average revenue per user by plan tier in Q4 — re-order the stages.',
       sub: 'Filter to Q4 billing, group by plan, sort by ARPU, limit to top tiers.',
       why: 'ARPU by plan tier drives pricing strategy. Filter to Q4 (shrink dataset), group by planTier to average revenue, sort descending, and identify the most valuable segments.',
@@ -261,7 +262,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       title: 'ESR for network quality queries', kind: 'reorder',
       prompt: 'Order this compound index for: find drop events with high impact, sorted by time.',
       sub: 'For: db.networkEvents.find({ type: "call_drop", impactScore: { $gt: 8 } }).sort({ eventTime: -1 })',
-      why: 'ESR in telecom: equality (type) narrows to drops, sort (eventTime) delivers results chronologically for the NOC timeline, range (impactScore) scans only high-impact events.',
+      why: 'ESR in telecom: equality (type) narrows to drops first, sort (eventTime) then delivers results chronologically for the NOC timeline, and range (impactScore) scans only high-impact events. Equality fields must precede range fields so MongoDB can preserve the requested sort while scanning the bounded index range efficiently.',
       stages: [
         { id: 'e', code: 'type: 1',        sub: 'Equality — { type: "call_drop" }', correct: 0 },
         { id: 's', code: 'eventTime: -1',   sub: 'Sort — .sort({ eventTime: -1 })', correct: 1 },

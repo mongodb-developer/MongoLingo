@@ -5,6 +5,16 @@
 
 const { useState: useS, useEffect: useE, useRef: useR, useMemo: useM, useCallback: useC } = React;
 
+/* Return a shuffled copy so authored data and answer mappings stay untouched. */
+function shuffleForDisplay(items) {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 /* ====================================================================
  * Common: drag-and-drop helpers (HTML5 + touch-friendly via pointer events)
  * ==================================================================== */
@@ -67,6 +77,7 @@ function DropSlot({
  * ==================================================================== */
 function ShapeExercise({ level, onResult, onState }) {
   const slots = useM(() => level.skeleton.filter(f => f.type === 'slot'), [level]);
+  const displayBank = useM(() => shuffleForDisplay(level.bank), [level]);
   const [filled, setFilled] = useS({}); // { slotName: tokenId }
   const [feedback, setFeedback] = useS(null);
   const [perfect, setPerfect] = useS(true);
@@ -140,7 +151,7 @@ function ShapeExercise({ level, onResult, onState }) {
       <div>
         <div className="ml-pane__label">Token bank — drag the JSON values</div>
         <div className="ml-tokenbank">
-          {level.bank.map(t => (
+          {displayBank.map(t => (
             <DragToken
               key={t.id}
               id={t.id}
@@ -160,6 +171,7 @@ function ShapeExercise({ level, onResult, onState }) {
  * Exercise: BLOCKS — assemble a snippet by dragging operator/value tokens.
  * ==================================================================== */
 function BlocksExercise({ level, onResult, onState }) {
+  const displayBank = useM(() => shuffleForDisplay(level.bank), [level]);
   const [filled, setFilled] = useS({}); // slotName → tokenId
   const [feedback, setFeedback] = useS(null);
   const [perfect, setPerfect] = useS(true);
@@ -221,7 +233,7 @@ function BlocksExercise({ level, onResult, onState }) {
       </div>
       <div className="ml-pane__label">Token bank — drag the missing pieces</div>
       <div className="ml-tokenbank">
-        {level.bank.map(t => (
+        {displayBank.map(t => (
           <DragToken
             key={t.id}
             id={t.id}
@@ -265,6 +277,9 @@ function renderSnippet(snippet, filledLabels) {
  * ==================================================================== */
 function FillExercise({ level, onResult, onState }) {
   const blanks = useM(() => level.snippet.filter(t => typeof t === 'object').map(t => t.blank), [level]);
+  const displayChoices = useM(() => Object.fromEntries(
+    Object.entries(level.choices).map(([blank, choice]) => [blank, shuffleForDisplay(choice.options)])
+  ), [level]);
   const [filled, setFilled] = useS({});
   const [active, setActive] = useS(null);
   const [tried, setTried] = useS({}); // blank → set of wrong tokens
@@ -338,7 +353,7 @@ function FillExercise({ level, onResult, onState }) {
         <div style={{ marginBottom: 16 }}>
           <div className="ml-pane__label">Choose for blank · <span style={{ color: 'var(--lg-spring)' }}>{active}</span></div>
           <div className="ml-tokenbank">
-            {level.choices[active].options.map(opt => {
+            {displayChoices[active].map(opt => {
               const wasTried = (tried[active] || new Set()).has(opt);
               return (
                 <button
@@ -474,6 +489,7 @@ function ReorderExercise({ level, onResult, onState }) {
  * Exercise: INDEX — drop index types onto collection fields.
  * ==================================================================== */
 function IndexExercise({ level, onResult, onState }) {
+  const displayBank = useM(() => shuffleForDisplay(level.bank), [level]);
   const [drops, setDrops] = useS({}); // fieldName → indexId
   const [selectedIndex, setSelectedIndex] = useS(null);
   const [feedback, setFeedback] = useS(null);
@@ -535,7 +551,7 @@ function IndexExercise({ level, onResult, onState }) {
       <div style={{ marginTop: 16 }}>
         <div className="ml-pane__label">Index types — drag onto each field, or tap an index then tap a row</div>
         <div className="ml-tokenbank">
-          {level.bank.map(b => (
+          {displayBank.map(b => (
             <DragToken
               key={b.id}
               id={b.id}
@@ -660,7 +676,9 @@ function FillPreview({ level, filled }) {
   if (/\.updateOne\s*\(/.test(rendered)) {
     const field = stripQuotes(choices.field?.answer || 'updatedField');
     const val = parsePreviewValue(choices.val?.answer || 'true');
-    return <FakeDocs docs={[Object.assign({ _id: '...', updatedAt: '2026-05-24T12:00Z' }, { [field]: val })]} note="matchedCount: 1 · modifiedCount: 1" highlight={field} />;
+    const op = choices.op?.answer || '$set';
+    const value = op === '$push' || op === '$addToSet' ? [val] : val;
+    return <FakeDocs docs={[{ _id: '...', [field]: value }]} note="matchedCount: 1 · modifiedCount: 1" highlight={field} />;
   }
   if (/\.deleteOne\s*\(/.test(rendered)) {
     return <FakeDocs docs={[]} note={`deletedCount: 1 · removed one ${singularize(collection)} matching the filter`} />;
@@ -804,7 +822,7 @@ function stripQuotes(value) {
 }
 
 function parsePreviewValue(value) {
-  const raw = String(value || '');
+  const raw = String(value || '').trim();
   if (raw === 'true') return true;
   if (raw === 'false') return false;
   if (/^-?\d+(\.\d+)?$/.test(raw)) return Number(raw);
@@ -899,11 +917,17 @@ function sampleDocsForLevel(level, collection, count = 3, options = {}) {
       { _id: 'pat_03', patientId: 'PAT-1003', status: 'active', riskScore: 82 }
     ];
   } else if (/device|subscriber|network|ticket|call|telecom/.test(col + ' ' + prompt)) {
-    docs = [
-      { _id: 'sub_01', subscriberId: 'SUB-1001', plan: '5G unlimited', status: 'active' },
-      { _id: 'sub_02', subscriberId: 'SUB-1002', plan: 'fiber pro', status: 'priority' },
-      { _id: 'sub_03', subscriberId: 'SUB-1003', plan: 'business', status: 'active' }
-    ];
+    docs = /network|event|call/.test(col + ' ' + prompt)
+      ? [
+          { _id: 'evt_01', eventId: 'NET-9042', type: 'call_drop', cellId: 'CELL-4491', eventTime: '2026-05-26T09:41:00Z', impactScore: 9 },
+          { _id: 'evt_02', eventId: 'NET-9041', type: 'call_drop', cellId: 'CELL-2187', eventTime: '2026-05-26T09:38:00Z', impactScore: 8.7 },
+          { _id: 'evt_03', eventId: 'NET-9040', type: 'handover_failure', cellId: 'CELL-7734', eventTime: '2026-05-26T09:35:00Z', impactScore: 8.4 }
+        ]
+      : [
+          { _id: 'sub_01', subscriberId: 'SUB-1001', plan: '5G unlimited', status: 'active' },
+          { _id: 'sub_02', subscriberId: 'SUB-1002', plan: 'fiber pro', status: 'priority' },
+          { _id: 'sub_03', subscriberId: 'SUB-1003', plan: 'business', status: 'active' }
+        ];
   } else if (/game|player|match|session|guild/.test(col + ' ' + prompt)) {
     docs = [
       { _id: 'ply_01', playerId: 'P-1001', segment: 'whale', level: 42 },
