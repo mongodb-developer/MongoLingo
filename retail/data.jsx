@@ -20,25 +20,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Build a product document', kind: 'shape',
       prompt: 'Drag the right values into the product listing for a hiking jacket.',
-      sub: 'Product documents combine name, price, category, and availability in one shape.',
-      why: 'Retail product catalogs are naturally document-shaped — shoes have sizes, electronics have specs, jackets have materials. MongoDB lets each product carry its own attribute set without a one-size-fits-all table.',
+      sub: 'Product documents combine scalar values with size arrays and embedded material details.',
+      why: 'Retail product catalogs are naturally document-shaped — a jacket can keep its price, available sizes, and material details together, while shoes and electronics add their own attributes without a one-size-fits-all table.',
       skeleton: [
         { key: '_id',      type: 'oid',  value: 'ObjectId("66b...")' },
         { key: 'name',     type: 'slot', slot: 'name' },
         { key: 'price',    type: 'slot', slot: 'price' },
-        { key: 'category', type: 'slot', slot: 'cat' },
-        { key: 'inStock',  type: 'slot', slot: 'stock' }
+        { key: 'sizes',    type: 'slot', slot: 'sizes' },
+        { key: 'material', type: 'slot', slot: 'material' }
       ],
       bank: [
         { id: 'name',  label: '"Trail Pro Jacket"', kind: 'value' },
         { id: 'price', label: '189.99',             kind: 'value' },
-        { id: 'cat',   label: '"outerwear"',        kind: 'value' },
-        { id: 'stock', label: 'true',               kind: 'value' },
+        { id: 'sizes', label: '["S", "M", "L"]', kind: 'value' },
+        { id: 'material', label: '{ shell: "nylon", waterproof: true }', kind: 'value' },
         { id: 'd1',    label: 'Trail Pro Jacket',   kind: 'value' },
         { id: 'd2',    label: '"189.99"',           kind: 'value' },
-        { id: 'd3',    label: '"true"',             kind: 'value' }
+        { id: 'd3',    label: '[S, "M", "L"]', kind: 'value' }
       ],
-      answer: { name: 'name', price: 'price', cat: 'cat', stock: 'stock' }
+      answer: { name: 'name', price: 'price', sizes: 'sizes', material: 'material' }
     },
     d2: {
       title: 'insertOne() — add to catalog', kind: 'blocks',

@@ -886,6 +886,42 @@ function sampleDocsForLevel(level, collection, count = 3, options = {}) {
     docs = ragDocsForContext(level, collection);
   } else if (options.vector || /vector|embedding|similar|nearest|rag/.test(prompt)) {
     docs = vectorDocsForContext(level, collection);
+  } else if (/\btitles\b/.test(col)) {
+    docs = [
+      { _id: 'ttl_2091', title: 'Beyond the Blue Planet', genre: 'documentary', synopsis: 'A journey through Earth’s changing oceans.' },
+      { _id: 'ttl_1844', title: 'Orbit: The Untold Story', genre: 'documentary', synopsis: 'The human stories behind space exploration.' },
+      { _id: 'ttl_1730', title: 'Deep Space Signals', genre: 'documentary', synopsis: 'Scientists trace mysterious signals from the cosmos.' }
+    ];
+  } else if (/threatintel/.test(col)) {
+    docs = [
+      { _id: 'intel_01', report: 'Credential stuffing indicator: rotating proxy clusters', severity: 'high' },
+      { _id: 'intel_02', report: 'Credential stuffing campaigns target streaming logins', severity: 'high' },
+      { _id: 'intel_03', report: 'Indicator update: automated account takeover toolkit', severity: 'medium' }
+    ];
+  } else if (/\btransactions\b/.test(col)) {
+    docs = [
+      { _id: 'txn_9042', txnId: 'TXN-9042', narrative: 'Suspicious wire transfer to a newly added beneficiary', amount: 24800 },
+      { _id: 'txn_9039', txnId: 'TXN-9039', narrative: 'Urgent international wire transfer with unusual memo', amount: 18750 },
+      { _id: 'txn_9037', txnId: 'TXN-9037', narrative: 'Repeated wire transfer attempt after account change', amount: 12300 }
+    ];
+  } else if (/\breports\b/.test(col)) {
+    docs = [
+      { _id: 'rpt_01', reportId: 'RPT-841', description: 'Toxic chat report from ranked match', status: 'open' },
+      { _id: 'rpt_02', reportId: 'RPT-838', description: 'Repeated toxic chat report from team voice channel', status: 'review' },
+      { _id: 'rpt_03', reportId: 'RPT-833', description: 'Player report cites abusive chat behavior', status: 'open' }
+    ];
+  } else if (/maintenancelogs/.test(col)) {
+    docs = [
+      { _id: 'mnt_01', assetId: 'CNC-14', notes: 'Bearing temperature anomaly resolved after lubrication.', status: 'resolved' },
+      { _id: 'mnt_02', assetId: 'PRESS-07', notes: 'Bearing temperature anomaly traced to misalignment.', status: 'resolved' },
+      { _id: 'mnt_03', assetId: 'ROBOT-22', notes: 'Temperature anomaly requires bearing inspection.', status: 'scheduled' }
+    ];
+  } else if (/knowledgebase/.test(col)) {
+    docs = [
+      { _id: 'kb_01', article: 'Dropped call troubleshooting', solution: 'Check cell handover and local signal quality.' },
+      { _id: 'kb_02', article: 'Resolving repeated dropped calls', solution: 'Verify device network settings and coverage history.' },
+      { _id: 'kb_03', article: 'Call-drop escalation guide', solution: 'Collect event timestamps and affected cell IDs.' }
+    ];
   } else if (/claim/.test(col + ' ' + prompt)) {
     docs = [
       { _id: 'clm_4521', claimId: 'CLM-4521', type: 'home', status: 'open', estimatedLoss: 64000 },
@@ -1239,6 +1275,8 @@ function vectorDocsForContext(level, collection) {
     titles = ['Similar intrusion alert', 'Related threat intel note', 'Incident response runbook', 'Matching IOC investigation', 'Privilege escalation case'];
   } else if (/subscriber|network|telecom|device/.test(text)) {
     titles = ['Similar churn-risk subscriber', 'Network outage precedent', 'Comparable device issue', 'Fiber support case', '5G coverage complaint'];
+  } else if (/title|documentary|streaming|media|film|movie|podcast|episode/.test(text)) {
+    titles = ['Beyond the Blue Planet', 'Orbit: The Untold Story', 'Deep Space Signals', 'The Last Ice Shelf', 'Voyage Through the Cosmos'];
   } else if (/game|player|match|guild/.test(text)) {
     titles = ['Similar player behavior', 'Comparable match pattern', 'Churn-risk session', 'High-value player segment', 'Guild activity signal'];
   } else if (/product|catalog|retail|cart/.test(text)) {
@@ -1252,11 +1290,37 @@ function vectorDocsForContext(level, collection) {
 }
 
 function ragDocsForContext(level, collection) {
-  return vectorDocsForContext(level, collection).slice(0, 3).map((doc, idx) => ({
-    title: doc.title,
-    chunk: ['…authorized context only…', '…most relevant passage…', '…trimmed for the LLM…'][idx],
-    score: doc.score
-  }));
+  const projection = level.stages?.find(stage => stage.code.includes('$project'))?.code || '';
+  const fields = Array.from(projection.matchAll(/(?:\{|,)\s*([\w]+)\s*:/g))
+    .map(([, field]) => field)
+    .filter(field => field !== '_id');
+  const projectedFields = fields.length ? fields : ['title', 'chunk', 'score'];
+
+  return vectorDocsForContext(level, collection).slice(0, 3).map((doc, idx) =>
+    Object.fromEntries(projectedFields.map(field => [field, ragPreviewValue(field, doc, idx)]))
+  );
+}
+
+function ragPreviewValue(field, doc, idx) {
+  const values = {
+    article: ['Dropped call troubleshooting', 'Handover failure resolution', '5G coverage diagnostic'],
+    chunk: ['…authorized context only…', '…most relevant passage…', '…trimmed for the LLM…'],
+    context: ['Combat and movement rules', 'Encounter adjudication guidance', 'Character progression policy'],
+    description: ['Waterproof shell with sealed seams', 'Insulated hiking jacket for wet weather', 'Breathable rain layer for trail use'],
+    equipment: ['CNC-14 spindle assembly', 'PRESS-07 hydraulic press', 'ROBOT-22 servo arm'],
+    guideline: ['Property underwriting: water damage', 'Auto underwriting: collision history', 'Commercial risk eligibility'],
+    name: ['Trail Pro Jacket', 'Storm Shell', 'Alpine Rain Jacket'],
+    procedure: ['Investigate elevated telemetry', 'Verify sensor calibration', 'Escalate repeated anomaly'],
+    protocol: ['Diabetes care escalation', 'Cardiac observation protocol', 'Medication reconciliation'],
+    regulation: ['Wire transfer monitoring rule', 'Suspicious activity reporting', 'Beneficiary verification requirement'],
+    rule: ['Resolve contested action', 'Apply encounter difficulty', 'Moderation escalation policy'],
+    section: ['Assessment', 'Recommended action', 'Escalation criteria'],
+    solution: ['Check cell handover and signal quality.', 'Verify device settings and coverage history.', 'Collect event timestamps for escalation.'],
+    synopsis: ['A journey through Earth’s changing oceans.', 'The human stories behind space exploration.', 'Scientists trace signals from the cosmos.'],
+    title: [doc.title, doc.title, doc.title]
+  };
+  if (field === 'score') return doc.score;
+  return values[field]?.[idx] || `${field} context ${idx + 1}`;
 }
 
 function sampleGroupedDocsForLevel(level, collection) {

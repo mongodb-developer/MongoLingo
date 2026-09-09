@@ -19,25 +19,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Build an equipment asset document', kind: 'shape',
       prompt: 'Drag the right values into the asset record for a CNC milling machine.',
-      sub: 'Asset documents combine serial number, type, location, and operational status.',
-      why: 'Equipment assets in manufacturing vary widely — pumps have flow rates, CNC machines have spindle specs. MongoDB documents let each machine carry its own attributes without forcing a universal table.',
+      sub: 'Asset documents combine scalar values with maintenance arrays and embedded location context.',
+      why: 'Equipment assets in manufacturing vary widely — pumps have flow rates, CNC machines have spindle specs, and each has its own maintenance history and location. MongoDB documents keep that context together without forcing a universal table.',
       skeleton: [
         { key: '_id',      type: 'oid',  value: 'ObjectId("73d...")' },
         { key: 'serial',   type: 'slot', slot: 'serial' },
-        { key: 'type',     type: 'slot', slot: 'type' },
-        { key: 'location', type: 'slot', slot: 'loc' },
-        { key: 'operational', type: 'slot', slot: 'op' }
+        { key: 'spindleRpm', type: 'slot', slot: 'rpm' },
+        { key: 'maintenanceTags', type: 'slot', slot: 'tags' },
+        { key: 'location', type: 'slot', slot: 'location' }
       ],
       bank: [
         { id: 'serial', label: '"CNC-4401"',    kind: 'value' },
-        { id: 'type',   label: '"milling"',     kind: 'value' },
-        { id: 'loc',    label: '"Plant-B Bay-3"', kind: 'value' },
-        { id: 'op',     label: 'true',          kind: 'value' },
+        { id: 'rpm',    label: '12000', kind: 'value' },
+        { id: 'tags',   label: '["calibrated", "preventive-maintenance"]', kind: 'value' },
+        { id: 'location', label: '{ plant: "Plant-B", bay: 3 }', kind: 'value' },
         { id: 'd1',     label: 'CNC-4401',      kind: 'value' },
-        { id: 'd2',     label: '"true"',         kind: 'value' },
-        { id: 'd3',     label: 'milling',        kind: 'value' }
+        { id: 'd2',     label: '"12000"', kind: 'value' },
+        { id: 'd3',     label: '{ plant: Plant-B, bay: 3 }', kind: 'value' }
       ],
-      answer: { serial: 'serial', type: 'type', loc: 'loc', op: 'op' }
+      answer: { serial: 'serial', rpm: 'rpm', tags: 'tags', location: 'location' }
     },
     d2: {
       title: 'insertOne() — log a sensor reading', kind: 'blocks',

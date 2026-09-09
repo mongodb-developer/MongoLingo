@@ -41,8 +41,8 @@ const HINTS = /*EDITMODE-BEGIN*/{
 
 const LEVEL_HINTS = {
   d1: [
-    'Match each field to the BSON/JSON type the document expects.',
-    'Strings need quotes; numbers, booleans, arrays, and ObjectIds do not.'
+    'Match each field to the BSON/JSON shape the document expects: string, number, array, or embedded document.',
+    'Strings need quotes; numbers do not. Arrays use [ ], and embedded documents use { }.'
   ],
   d2: [
     'Find the collection name first, then choose the MongoDB write operation.',
@@ -152,26 +152,26 @@ const WORLDS = [
       {
         id: 'd1', title: 'Build a user document', kind: 'shape',
         prompt: 'Drag the right values into the user document for Ada Lovelace.',
-        sub:    'Documents are JSON. Strings get quotes. Numbers and booleans don\'t.',
-        why:    'A MongoDB document is BSON — JSON with extra types (ObjectId, Date, Decimal128). Field order is preserved but rarely meaningful.',
+        sub:    'Documents can combine strings and numbers with arrays and embedded documents.',
+        why:    'A MongoDB document is BSON — JSON with extra types (ObjectId, Date, Decimal128). Related values can live together as arrays and embedded documents, matching the application object without joins.',
         skeleton: [
           { key: '_id',    type: 'oid',   value: 'ObjectId("64e...")' },
           { key: 'name',   type: 'slot',  slot: 'name'   },
-          { key: 'email',  type: 'slot',  slot: 'email'  },
           { key: 'age',    type: 'slot',  slot: 'age'    },
-          { key: 'active', type: 'slot',  slot: 'active' }
+          { key: 'skills', type: 'slot',  slot: 'skills' },
+          { key: 'preferences', type: 'slot', slot: 'preferences' }
         ],
         bank: [
           { id: 'name',    label: '"Ada Lovelace"',           kind: 'value' },
-          { id: 'email',   label: '"ada@analytical.dev"',     kind: 'value' },
           { id: 'age',     label: '36',                       kind: 'value' },
-          { id: 'active',  label: 'true',                     kind: 'value' },
+          { id: 'skills',  label: '["math", "programming"]', kind: 'value' },
+          { id: 'preferences', label: '{ theme: "dark", digest: "weekly" }', kind: 'value' },
           /* distractors */
           { id: 'd1',      label: '"36"',                     kind: 'value' },
           { id: 'd2',      label: 'Ada Lovelace',             kind: 'value' },
-          { id: 'd3',      label: '"true"',                   kind: 'value' }
+          { id: 'd3',      label: '[math, "programming"]',   kind: 'value' }
         ],
-        answer: { name: 'name', email: 'email', age: 'age', active: 'active' }
+        answer: { name: 'name', age: 'age', skills: 'skills', preferences: 'preferences' }
       },
       {
         id: 'd2', title: 'insertOne()', kind: 'blocks',

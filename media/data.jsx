@@ -19,25 +19,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Build a content title document', kind: 'shape',
       prompt: 'Drag the right values into the title record for a new documentary.',
-      sub: 'Content documents combine title, genre, runtime, and availability.',
-      why: 'Media catalogs are naturally document-shaped — movies have cast lists, series have seasons, podcasts have episodes. MongoDB lets each content type carry its own metadata without a universal table.',
+      sub: 'Content documents combine scalar values with cast arrays and embedded release metadata.',
+      why: 'Media catalogs are naturally document-shaped — a title can keep its runtime, cast list, and release metadata together, while series and podcasts can add their own fields without a universal table.',
       skeleton: [
         { key: '_id',     type: 'oid',  value: 'ObjectId("71b...")' },
         { key: 'title',   type: 'slot', slot: 'title' },
-        { key: 'genre',   type: 'slot', slot: 'genre' },
         { key: 'runtime', type: 'slot', slot: 'runtime' },
-        { key: 'active',  type: 'slot', slot: 'active' }
+        { key: 'cast',    type: 'slot', slot: 'cast' },
+        { key: 'release', type: 'slot', slot: 'release' }
       ],
       bank: [
         { id: 'title',   label: '"Cosmos: Beyond"',  kind: 'value' },
-        { id: 'genre',   label: '"documentary"',     kind: 'value' },
         { id: 'runtime', label: '92',                kind: 'value' },
-        { id: 'active',  label: 'true',              kind: 'value' },
+        { id: 'cast', label: '["Ava Torres", "Noah Kim"]', kind: 'value' },
+        { id: 'release', label: '{ year: 2026, rating: "PG" }', kind: 'value' },
         { id: 'd1',      label: 'Cosmos: Beyond',    kind: 'value' },
         { id: 'd2',      label: '"92"',              kind: 'value' },
-        { id: 'd3',      label: '"true"',            kind: 'value' }
+        { id: 'd3',      label: '[Ava Torres, "Noah Kim"]', kind: 'value' }
       ],
-      answer: { title: 'title', genre: 'genre', runtime: 'runtime', active: 'active' }
+      answer: { title: 'title', runtime: 'runtime', cast: 'cast', release: 'release' }
     },
     d2: {
       title: 'insertOne() — log a viewing event', kind: 'blocks',

@@ -20,25 +20,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Build a subscriber document', kind: 'shape',
       prompt: 'Drag the right values into the subscriber profile for James Park.',
-      sub: 'Subscriber documents combine name, plan tier, data usage, and active status.',
-      why: 'A subscriber 360 document keeps identity, plan details, usage patterns, and support history together — giving agents instant context during calls without querying separate BSS and OSS systems.',
+      sub: 'Subscriber documents combine scalar values with service arrays and embedded plan details.',
+      why: 'A subscriber 360 document keeps identity, data usage, enabled services, and plan details together — giving agents instant context during calls without querying separate BSS and OSS systems.',
       skeleton: [
         { key: '_id',      type: 'oid',  value: 'ObjectId("70a...")' },
         { key: 'name',     type: 'slot', slot: 'name' },
-        { key: 'planTier', type: 'slot', slot: 'tier' },
         { key: 'dataUsedGB', type: 'slot', slot: 'data' },
-        { key: 'active',   type: 'slot', slot: 'active' }
+        { key: 'services', type: 'slot', slot: 'services' },
+        { key: 'plan',     type: 'slot', slot: 'plan' }
       ],
       bank: [
         { id: 'name',   label: '"James Park"',  kind: 'value' },
-        { id: 'tier',   label: '"premium"',     kind: 'value' },
         { id: 'data',   label: '47.2',          kind: 'value' },
-        { id: 'active', label: 'true',          kind: 'value' },
+        { id: 'services', label: '["5G", "roaming"]', kind: 'value' },
+        { id: 'plan', label: '{ tier: "premium", autopay: true }', kind: 'value' },
         { id: 'd1',     label: 'James Park',    kind: 'value' },
         { id: 'd2',     label: '"47.2"',        kind: 'value' },
-        { id: 'd3',     label: '"true"',        kind: 'value' }
+        { id: 'd3',     label: '[5G, "roaming"]', kind: 'value' }
       ],
-      answer: { name: 'name', tier: 'tier', data: 'data', active: 'active' }
+      answer: { name: 'name', data: 'data', services: 'services', plan: 'plan' }
     },
     d2: {
       title: 'insertOne() — log a network event', kind: 'blocks',

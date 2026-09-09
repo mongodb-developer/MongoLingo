@@ -19,25 +19,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Build a player profile document', kind: 'shape',
       prompt: 'Drag the right values into the player profile for "ShadowKnight".',
-      sub: 'Player documents combine username, level, currency, and online status.',
-      why: 'Player profiles are living documents that grow every session — inventory, achievements, friends, preferences. MongoDB handles this evolving shape without migrations or downtime between patches.',
+      sub: 'Player documents combine scalar values with achievement arrays and embedded preferences.',
+      why: 'Player profiles are living documents that grow every session — level, achievements, preferences, inventory, and friends. MongoDB handles this evolving shape without migrations or downtime between patches.',
       skeleton: [
         { key: '_id',      type: 'oid',  value: 'ObjectId("72c...")' },
         { key: 'username', type: 'slot', slot: 'user' },
         { key: 'level',    type: 'slot', slot: 'lvl' },
-        { key: 'gold',     type: 'slot', slot: 'gold' },
-        { key: 'online',   type: 'slot', slot: 'online' }
+        { key: 'achievements', type: 'slot', slot: 'achievements' },
+        { key: 'preferences', type: 'slot', slot: 'preferences' }
       ],
       bank: [
         { id: 'user',   label: '"ShadowKnight"', kind: 'value' },
         { id: 'lvl',    label: '42',             kind: 'value' },
-        { id: 'gold',   label: '8750',           kind: 'value' },
-        { id: 'online', label: 'true',           kind: 'value' },
+        { id: 'achievements', label: '["First Blood", "Explorer"]', kind: 'value' },
+        { id: 'preferences', label: '{ region: "us-east", voiceChat: true }', kind: 'value' },
         { id: 'd1',     label: 'ShadowKnight',   kind: 'value' },
         { id: 'd2',     label: '"42"',           kind: 'value' },
-        { id: 'd3',     label: '"true"',         kind: 'value' }
+        { id: 'd3',     label: '[First Blood, "Explorer"]', kind: 'value' }
       ],
-      answer: { user: 'user', lvl: 'lvl', gold: 'gold', online: 'online' }
+      answer: { user: 'user', lvl: 'lvl', achievements: 'achievements', preferences: 'preferences' }
     },
     d2: {
       title: 'insertOne() — log a match result', kind: 'blocks',

@@ -20,25 +20,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Build an asset inventory document', kind: 'shape',
       prompt: 'Drag the right values into the asset record for a production web server.',
-      sub: 'Asset documents combine hostname, criticality, OS, and online status.',
-      why: 'An asset document in security keeps hostname, criticality, vulnerabilities, and ownership together — giving SOC analysts instant context during triage without querying multiple CMDBs.',
+      sub: 'Asset documents combine scalar values with arrays and embedded ownership context.',
+      why: 'An asset document in security keeps hostname, risk score, vulnerability tags, and ownership together — giving SOC analysts instant context during triage without querying multiple CMDBs.',
       skeleton: [
         { key: '_id',        type: 'oid',  value: 'ObjectId("69e...")' },
         { key: 'hostname',   type: 'slot', slot: 'host' },
-        { key: 'criticality', type: 'slot', slot: 'crit' },
-        { key: 'os',         type: 'slot', slot: 'os' },
-        { key: 'online',     type: 'slot', slot: 'online' }
+        { key: 'riskScore',  type: 'slot', slot: 'risk' },
+        { key: 'tags',       type: 'slot', slot: 'tags' },
+        { key: 'owner',      type: 'slot', slot: 'owner' }
       ],
       bank: [
         { id: 'host',   label: '"web-prod-01"',  kind: 'value' },
-        { id: 'crit',   label: '"critical"',     kind: 'value' },
-        { id: 'os',     label: '"ubuntu-22.04"', kind: 'value' },
-        { id: 'online', label: 'true',           kind: 'value' },
+        { id: 'risk',   label: '92', kind: 'value' },
+        { id: 'tags',   label: '["internet-facing", "production"]', kind: 'value' },
+        { id: 'owner',  label: '{ team: "platform", onCall: "secops" }', kind: 'value' },
         { id: 'd1',     label: 'web-prod-01',    kind: 'value' },
-        { id: 'd2',     label: '"true"',         kind: 'value' },
-        { id: 'd3',     label: 'critical',       kind: 'value' }
+        { id: 'd2',     label: '"92"', kind: 'value' },
+        { id: 'd3',     label: '["internet-facing", production]', kind: 'value' }
       ],
-      answer: { host: 'host', crit: 'crit', os: 'os', online: 'online' }
+      answer: { host: 'host', risk: 'risk', tags: 'tags', owner: 'owner' }
     },
     d2: {
       title: 'insertOne() — log a security event', kind: 'blocks',

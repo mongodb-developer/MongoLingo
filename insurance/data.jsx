@@ -20,25 +20,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Build a policyholder document', kind: 'shape',
       prompt: 'Drag the right values into the policyholder profile for Sarah Kim.',
-      sub: 'Policyholder documents combine identity, risk tier, policy count, and active status.',
-      why: 'A policyholder 360 document keeps identity, coverage details, risk tier, and claims history together — giving adjusters instant context without querying five separate systems.',
+      sub: 'Policyholder documents combine scalar values with coverage arrays and embedded contact details.',
+      why: 'A policyholder 360 document keeps identity, risk score, coverage details, and contact data together — giving adjusters instant context without querying five separate systems.',
       skeleton: [
         { key: '_id',         type: 'oid',  value: 'ObjectId("68d...")' },
         { key: 'name',        type: 'slot', slot: 'name' },
         { key: 'riskScore',   type: 'slot', slot: 'risk' },
-        { key: 'policyCount', type: 'slot', slot: 'count' },
-        { key: 'active',      type: 'slot', slot: 'active' }
+        { key: 'coverages',   type: 'slot', slot: 'coverages' },
+        { key: 'contact',     type: 'slot', slot: 'contact' }
       ],
       bank: [
         { id: 'name',   label: '"Sarah Kim"',  kind: 'value' },
         { id: 'risk',   label: '72',           kind: 'value' },
-        { id: 'count',  label: '3',            kind: 'value' },
-        { id: 'active', label: 'true',         kind: 'value' },
+        { id: 'coverages', label: '["home", "auto"]', kind: 'value' },
+        { id: 'contact', label: '{ city: "Denver", preferred: "email" }', kind: 'value' },
         { id: 'd1',     label: 'Sarah Kim',    kind: 'value' },
         { id: 'd2',     label: '"72"',         kind: 'value' },
-        { id: 'd3',     label: '"true"',       kind: 'value' }
+        { id: 'd3',     label: '[home, "auto"]', kind: 'value' }
       ],
-      answer: { name: 'name', risk: 'risk', count: 'count', active: 'active' }
+      answer: { name: 'name', risk: 'risk', coverages: 'coverages', contact: 'contact' }
     },
     d2: {
       title: 'insertOne() — file a new claim', kind: 'blocks',

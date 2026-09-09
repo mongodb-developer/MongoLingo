@@ -20,25 +20,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Build a customer 360 document', kind: 'shape',
       prompt: 'Drag the right values into the customer profile for Marcus Chen.',
-      sub: 'Financial customer documents combine KYC data, risk tier, and account status in one place.',
-      why: 'A customer 360 document in banking keeps identity, risk, preferences, and relationship data together — eliminating expensive joins across siloed systems during every interaction.',
+      sub: 'Financial customer documents combine scalar values with arrays and embedded KYC context.',
+      why: 'A customer 360 document in banking keeps identity, assets, products, and KYC data together — eliminating expensive joins across siloed systems during every interaction.',
       skeleton: [
         { key: '_id',        type: 'oid',  value: 'ObjectId("65a...")' },
         { key: 'name',       type: 'slot', slot: 'name' },
-        { key: 'riskTier',   type: 'slot', slot: 'risk' },
-        { key: 'kycStatus',  type: 'slot', slot: 'kyc' },
-        { key: 'totalAssets', type: 'slot', slot: 'assets' }
+        { key: 'totalAssets', type: 'slot', slot: 'assets' },
+        { key: 'products',   type: 'slot', slot: 'products' },
+        { key: 'kyc',        type: 'slot', slot: 'kyc' }
       ],
       bank: [
         { id: 'name',   label: '"Marcus Chen"',  kind: 'value' },
-        { id: 'risk',   label: '"low"',          kind: 'value' },
-        { id: 'kyc',    label: '"verified"',     kind: 'value' },
         { id: 'assets', label: '2450000',        kind: 'value' },
+        { id: 'products', label: '["checking", "mortgage"]', kind: 'value' },
+        { id: 'kyc',    label: '{ status: "verified", reviewedAt: "2026-03-12" }', kind: 'value' },
         { id: 'd1',     label: 'Marcus Chen',    kind: 'value' },
         { id: 'd2',     label: '"2450000"',      kind: 'value' },
-        { id: 'd3',     label: 'verified',       kind: 'value' }
+        { id: 'd3',     label: '{ status: verified }', kind: 'value' }
       ],
-      answer: { name: 'name', risk: 'risk', kyc: 'kyc', assets: 'assets' }
+      answer: { name: 'name', assets: 'assets', products: 'products', kyc: 'kyc' }
     },
     d2: {
       title: 'insertOne() — new transaction', kind: 'blocks',

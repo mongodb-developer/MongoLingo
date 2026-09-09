@@ -20,25 +20,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Build a patient document', kind: 'shape',
       prompt: 'Drag the right values into the patient record for Elena Rodriguez.',
-      sub: 'Patient documents combine demographics, MRN, blood type, and active status.',
-      why: 'A patient 360 document keeps demographics, conditions, allergies, and consent together — eliminating the fragmented records that cause clinical errors in traditional systems.',
+      sub: 'Patient documents combine scalar values with allergy arrays and embedded emergency-contact context.',
+      why: 'A patient 360 document keeps demographics, age, allergies, and emergency contact together — eliminating the fragmented records that cause clinical errors in traditional systems.',
       skeleton: [
         { key: '_id',       type: 'oid',  value: 'ObjectId("67c...")' },
         { key: 'name',      type: 'slot', slot: 'name' },
-        { key: 'mrn',       type: 'slot', slot: 'mrn' },
-        { key: 'bloodType', type: 'slot', slot: 'blood' },
-        { key: 'active',    type: 'slot', slot: 'active' }
+        { key: 'age',       type: 'slot', slot: 'age' },
+        { key: 'allergies', type: 'slot', slot: 'allergies' },
+        { key: 'emergencyContact', type: 'slot', slot: 'contact' }
       ],
       bank: [
         { id: 'name',   label: '"Elena Rodriguez"', kind: 'value' },
-        { id: 'mrn',    label: '"MRN-204891"',      kind: 'value' },
-        { id: 'blood',  label: '"O+"',              kind: 'value' },
-        { id: 'active', label: 'true',              kind: 'value' },
+        { id: 'age',    label: '34', kind: 'value' },
+        { id: 'allergies', label: '["penicillin", "latex"]', kind: 'value' },
+        { id: 'contact', label: '{ name: "Miguel Rodriguez", phone: "555-0198" }', kind: 'value' },
         { id: 'd1',     label: 'Elena Rodriguez',   kind: 'value' },
-        { id: 'd2',     label: '"true"',            kind: 'value' },
-        { id: 'd3',     label: 'MRN-204891',        kind: 'value' }
+        { id: 'd2',     label: '"34"', kind: 'value' },
+        { id: 'd3',     label: '{ name: Miguel Rodriguez }', kind: 'value' }
       ],
-      answer: { name: 'name', mrn: 'mrn', blood: 'blood', active: 'active' }
+      answer: { name: 'name', age: 'age', allergies: 'allergies', contact: 'contact' }
     },
     d2: {
       title: 'insertOne() — record an encounter', kind: 'blocks',

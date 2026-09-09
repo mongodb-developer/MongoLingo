@@ -38,25 +38,25 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     d1: {
       title: 'Model one customer view', kind: 'shape',
       prompt: 'Build a customer document that keeps profile, plan, and preferences together.',
-      sub: 'MongoDB documents map naturally to the JSON objects applications already send and receive.',
-      why: 'In Postgres, this customer view often starts across users, plans, preferences, and join tables. MongoDB can store the high-value operational view together, reducing joins and matching the API shape directly.',
+      sub: 'MongoDB documents map naturally to application objects with scalars, arrays, and embedded documents.',
+      why: 'In Postgres, this customer view often starts across users, plans, preferences, and join tables. MongoDB can keep the high-value operational view together — including a numeric quota, feature array, and embedded preferences — reducing joins and matching the API shape directly.',
       skeleton: [
         { key: '_id',         type: 'oid',  value: 'ObjectId("67a...")' },
         { key: 'email',       type: 'slot', slot: 'email' },
-        { key: 'plan',        type: 'slot', slot: 'plan' },
+        { key: 'monthlyQuota', type: 'slot', slot: 'quota' },
         { key: 'betaFeatures', type: 'slot', slot: 'features' },
-        { key: 'active',      type: 'slot', slot: 'active' }
+        { key: 'preferences', type: 'slot', slot: 'preferences' }
       ],
       bank: [
         { id: 'email',    label: '"ada@example.com"', kind: 'value' },
-        { id: 'plan',     label: '"pro"',             kind: 'value' },
+        { id: 'quota',    label: '50000',              kind: 'value' },
         { id: 'features', label: '["aiSearch", "teamSpaces"]', kind: 'value' },
-        { id: 'active',   label: 'true',               kind: 'value' },
+        { id: 'preferences', label: '{ digest: "weekly", timezone: "UTC" }', kind: 'value' },
         { id: 'x1',       label: 'ada@example.com',    kind: 'value' },
-        { id: 'x2',       label: 'pro',                kind: 'value' },
-        { id: 'x3',       label: '"true"',            kind: 'value' }
+        { id: 'x2',       label: '"50000"',           kind: 'value' },
+        { id: 'x3',       label: '{ digest: weekly }', kind: 'value' }
       ],
-      answer: { email: 'email', plan: 'plan', features: 'features', active: 'active' }
+      answer: { email: 'email', quota: 'quota', features: 'features', preferences: 'preferences' }
     },
     d2: {
       title: 'insertOne() — no migration wait', kind: 'blocks',
