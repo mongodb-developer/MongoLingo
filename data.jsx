@@ -28,7 +28,10 @@ const HINTS = /*EDITMODE-BEGIN*/{
   "insertOne":     "Inserts a single document, returns its _id.",
   "updateOne":     "Updates the first matching doc with a `$set` patch.",
   "deleteOne":     "Deletes the first matching doc.",
-  "explain":       "Returns the query plan + execution stats.",
+  "explain":       "Shows how MongoDB ran a query: which index it used (if any) and how many docs it read.",
+  "executionStats": "explain() mode that actually runs the query and reports docs/keys examined and time taken.",
+  "IXSCAN":        "Index scan: MongoDB walks an index to jump straight to matching docs. Fast.",
+  "COLLSCAN":      "Collection scan: no usable index, so MongoDB reads every document. Slow on big collections.",
   "createIndex":   "Builds an index on one or more fields. Reads get fast.",
   "watch":         "Opens a change stream cursor for inserts, updates, deletes, and replaces.",
   "$source":       "Atlas Stream Processing stage that reads from a streaming source.",
@@ -138,6 +141,103 @@ const LEVEL_HINTS = {
   ]
 };
 
+/* Official-docs "Learn more" links shown in each level's "Why does this work?"
+ * card. Keyed by the shared level IDs so every pack inherits them; a level can
+ * override with its own `docs: [{ label, url }]`. */
+const MDB_DOCS = 'https://www.mongodb.com/docs';
+const LEVEL_DOCS = {
+  d1: [{ label: 'Documents', url: MDB_DOCS + '/manual/core/document/' }],
+  d2: [{ label: 'insertOne()', url: MDB_DOCS + '/manual/reference/method/db.collection.insertone/' }],
+  d3: [
+    { label: 'updateOne()', url: MDB_DOCS + '/manual/reference/method/db.collection.updateone/' },
+    { label: '$set', url: MDB_DOCS + '/manual/reference/operator/update/set/' }
+  ],
+  d4: [{ label: 'deleteOne()', url: MDB_DOCS + '/manual/reference/method/db.collection.deleteone/' }],
+  q1: [{ label: 'Query documents', url: MDB_DOCS + '/manual/tutorial/query-documents/' }],
+  q2: [
+    { label: '$match', url: MDB_DOCS + '/manual/reference/operator/aggregation/match/' },
+    { label: '$gt', url: MDB_DOCS + '/manual/reference/operator/query/gt/' }
+  ],
+  q3: [{ label: '$in', url: MDB_DOCS + '/manual/reference/operator/query/in/' }],
+  q4: [{ label: '$and', url: MDB_DOCS + '/manual/reference/operator/query/and/' }],
+  a1: [
+    { label: 'Aggregation pipeline', url: MDB_DOCS + '/manual/core/aggregation-pipeline/' },
+    { label: '$group', url: MDB_DOCS + '/manual/reference/operator/aggregation/group/' }
+  ],
+  a2: [{ label: '$project', url: MDB_DOCS + '/manual/reference/operator/aggregation/project/' }],
+  a3: [
+    { label: '$lookup', url: MDB_DOCS + '/manual/reference/operator/aggregation/lookup/' },
+    { label: '$unwind', url: MDB_DOCS + '/manual/reference/operator/aggregation/unwind/' }
+  ],
+  a4: [
+    { label: '$sort', url: MDB_DOCS + '/manual/reference/operator/aggregation/sort/' },
+    { label: '$limit', url: MDB_DOCS + '/manual/reference/operator/aggregation/limit/' }
+  ],
+  i1: [
+    { label: 'Indexes', url: MDB_DOCS + '/manual/indexes/' },
+    { label: 'Explain results (IXSCAN, COLLSCAN)', url: MDB_DOCS + '/manual/reference/explain-results/' }
+  ],
+  i2: [
+    { label: 'The ESR guideline', url: MDB_DOCS + '/manual/tutorial/equality-sort-range-guideline/' },
+    { label: 'Compound indexes', url: MDB_DOCS + '/manual/core/indexes/index-types/index-compound/' }
+  ],
+  i3: [{ label: 'TTL indexes', url: MDB_DOCS + '/manual/core/index-ttl/' }],
+  i4: [
+    { label: 'explain()', url: MDB_DOCS + '/manual/reference/method/cursor.explain/' },
+    { label: 'Reading explain results', url: MDB_DOCS + '/manual/reference/explain-results/' },
+    { label: 'Covered queries', url: MDB_DOCS + '/manual/core/query-optimization/' }
+  ],
+  v1: [{ label: '$vectorSearch', url: MDB_DOCS + '/vector-search/query/aggregation-stages/vector-search-stage/' }],
+  v2: [{ label: '$search', url: MDB_DOCS + '/search/query/aggregation-stages/search/' }],
+  v3: [{ label: 'Database triggers', url: MDB_DOCS + '/atlas/atlas-ui/triggers/database-triggers/' }],
+  v4: [{ label: 'RAG with Vector Search', url: MDB_DOCS + '/vector-search/tutorials/rag/' }],
+  s1: [{ label: 'Change streams', url: MDB_DOCS + '/manual/changestreams/' }],
+  s2: [{ label: 'Change streams', url: MDB_DOCS + '/manual/changestreams/' }],
+  s3: [
+    { label: 'Atlas Stream Processing', url: MDB_DOCS + '/atlas/atlas-stream-processing/' },
+    { label: '$source', url: MDB_DOCS + '/atlas/atlas-stream-processing/sp-agg-source/' }
+  ],
+  s4: [{ label: '$merge (stream processing)', url: MDB_DOCS + '/atlas/atlas-stream-processing/sp-agg-merge/' }]
+};
+
+/* Optional next steps shown when a learner completes every level in a world,
+ * and re-openable from the world banner on the map afterwards.
+ * Keyed by the shared world IDs so every learning pack (which clones WORLDS)
+ * gets the same topical recommendations. `type` defaults to 'Skill Badge';
+ * set it for anything else (e.g. a full course) so the UI labels it honestly. */
+const SKILL_BADGES_HOME = 'https://learn.mongodb.com/skills';
+const GENAI_PATH = 'https://learn.mongodb.com/learning-paths/mongodb-genai-developer';
+
+const WORLD_SKILL_BADGES = {
+  docs: [
+    { title: 'Relational to Document Model', url: 'https://learn.mongodb.com/courses/relational-to-document-model' },
+    { title: 'Schema Design Patterns and Anti-patterns', url: 'https://learn.mongodb.com/courses/schema-design-patterns-and-antipatterns' },
+    { title: 'Advanced Schema Patterns and Anti-patterns', url: 'https://learn.mongodb.com/courses/advanced-schema-patterns-and-antipatterns' },
+    { title: 'Schema Design Optimization', url: 'https://learn.mongodb.com/courses/schema-design-optimization' }
+  ],
+  query: [
+    { title: 'CRUD Operations', url: 'https://learn.mongodb.com/courses/crud-operations-in-mongodb' }
+  ],
+  agg: [
+    { title: 'Fundamentals of Data Transformation', url: 'https://learn.mongodb.com/courses/fundamentals-of-data-transformation' }
+  ],
+  idx: [
+    { title: 'Query Optimization', url: 'https://learn.mongodb.com/courses/query-optimization' }
+  ],
+  atlas: [
+    { title: 'AI Data Strategy with MongoDB', url: 'https://learn.mongodb.com/courses/ai-data-strategy-with-mongodb' },
+    { title: 'Building an App with Code Agents and MongoDB', url: 'https://learn.mongodb.com/courses/building-an-app-with-code-agents-and-mongodb' },
+    // No public per-badge URL found for these two; they live in the GenAI Developer path.
+    { title: 'Vector Search Fundamentals', url: GENAI_PATH },
+    { title: 'RAG with MongoDB', url: GENAI_PATH },
+    { title: 'AI Agents with MongoDB', url: 'https://learn.mongodb.com/courses/ai-agents-with-mongodb' },
+    { title: 'Memory for AI Applications with MongoDB', url: SKILL_BADGES_HOME }
+  ],
+  streams: [
+    { title: 'Atlas Stream Processing', url: 'https://learn.mongodb.com/courses/atlas-stream-processing', type: 'Course' }
+  ]
+};
+
 const WORLDS = [
   /* ============================================================ WORLD 1 */
   {
@@ -175,7 +275,7 @@ const WORLDS = [
       },
       {
         id: 'd2', title: 'insertOne()', kind: 'blocks',
-        prompt: 'Insert a new product into the catalog. Drag the missing pieces.',
+        prompt: 'Insert a new product into the `products` collection. Drag the missing pieces.',
         sub:    'insertOne() takes a single document and returns its generated _id.',
         why:    '`insertOne()` is the simplest write. For many docs, use `insertMany()`. MongoDB auto-generates an `_id` if you don\'t provide one.',
         snippet: [
@@ -332,6 +432,7 @@ const WORLDS = [
     levels: [
       {
         id: 'a1', title: 'Order matters', kind: 'reorder',
+        collection: 'orders', // shown in the solved-query preview
         prompt: 'Total revenue per customer in 2024 — re-order the stages.',
         sub:    'Filter early, group, sort, then limit. The ESR of pipelines.',
         why:    'Put `$match` first so the planner can use indexes and shrink the dataset before the expensive `$group`. Sort after grouping; limit last.',
@@ -366,6 +467,7 @@ const WORLDS = [
       },
       {
         id: 'a3', title: '$lookup — join collections', kind: 'reorder',
+        collection: 'orders', // shown in the solved-query preview
         prompt: 'Attach each order\'s customer doc, then keep only the name.',
         sub:    '$lookup adds an array of matches. $unwind flattens it. $project finishes the shape.',
         why:    '`$lookup` is your JOIN. It returns an array — even for single matches — so `$unwind` is almost always next.',
@@ -416,7 +518,7 @@ const WORLDS = [
         id: 'i1', title: 'Classify index choices', kind: 'index',
         prompt: 'The `events` collection has four query shapes. Pick the best index strategy for each one.',
         sub:    'Classify the full query shape: one equality field, equality+sort fields, Atlas Search text, or no index.',
-        why:    'Indexes trade write cost for read speed. A compound index must include every field needed by that query shape — for example `{ userId: 1, createdAt: -1 }` supports filtering by userId and sorting by createdAt.',
+        why:    'Indexes trade write cost for read speed. A compound index must include every field needed by that query shape — for example `{ userId: 1, createdAt: -1 }` supports filtering by userId and sorting by createdAt. In `explain()` output, a good index shows up as `IXSCAN` (index scan); a missing one as `COLLSCAN` (MongoDB reads every document).',
         collection: 'events',
         fields: [
           { name: 'userId',             type: 'ObjectId', need: 'single', used: 'db.events.find({ userId })'  },
@@ -437,9 +539,9 @@ const WORLDS = [
         sub:    'For: db.orders.find({ status: "paid", amount: { $gt: 50 } }).sort({ createdAt: -1 })',
         why:    'ESR: index Equality fields first (smallest sub-tree), then the Sort key (so the index returns rows pre-sorted), then Range (which forces a scan inside the bucket).',
         stages: [
-          { id: 'e', code: 'status: 1',     sub: 'Equality — { status: "paid" }', correct: 0 },
-          { id: 's', code: 'createdAt: -1', sub: 'Sort — .sort({ createdAt: -1 })', correct: 1 },
-          { id: 'r', code: 'amount: 1',     sub: 'Range — { $gt: 50 }',           correct: 2 }
+          { id: 'e', code: 'status: 1',     sub: 'filter: { status: "paid" }', correct: 0 },
+          { id: 's', code: 'createdAt: -1', sub: '.sort({ createdAt: -1 })', correct: 1 },
+          { id: 'r', code: 'amount: 1',     sub: 'filter: { amount: { $gt: 50 } }',           correct: 2 }
         ],
         initial: ['r', 's', 'e']
       },
@@ -464,7 +566,7 @@ const WORLDS = [
         id: 'i4', title: 'Covered query', kind: 'fill',
         prompt: 'Project only fields that live inside the index { sku: 1, price: 1 }.',
         sub:    'When every projected field is in the index, MongoDB skips the document fetch.',
-        why:    'A *covered* query returns from the index alone — no disk seek. Watch for `totalDocsExamined: 0` in `explain()`.',
+        why:    'A *covered* query returns from the index alone — no disk seek. `explain()` reports how MongoDB ran a query; in `"executionStats"` mode it also counts what it read. `totalDocsExamined: 0` means the answer came straight from the index without touching a single document.',
         snippet: [
           'db.products.find(',
           '\n  { sku: ', { blank: 'val' }, ' },',
@@ -560,6 +662,7 @@ const WORLDS = [
       },
       {
         id: 'v4', title: 'RAG: hybrid retrieval', kind: 'reorder',
+        collection: 'documents', // shown in the solved-query preview
         prompt: 'Pipeline for retrieval-augmented chat: filter by tenant, vector-search, then trim payload.',
         sub:    '$match early (tenant scope) → $vectorSearch (semantic) → $project (keep only what the LLM needs).',
         why:    'Tenant filters belong before semantic search so you only rank documents the user is allowed to see. Always trim the payload — every token costs.',
@@ -704,7 +807,9 @@ function createIndustryWorlds(profile) {
     docs.levels[0].why = profile.name + ' teams move fast when operational data fits the way the business thinks. MongoDB documents keep rich ' + (nouns.profile || 'profile') + ' context together without forcing every new attribute through a rigid migration.';
   }
   if (!levelOverrides['d2']) {
-    docs.levels[1].prompt = 'Insert a new ' + (nouns.item || 'record') + ' into the ' + (nouns.catalog || 'catalog') + '. Drag the missing pieces.';
+    // Name the exact collection: learners can't guess it from a noun like "catalog".
+    const d2Col = (docs.levels[1].bank.find(function(b) { return b.answer === 'col'; }) || {}).label || 'products';
+    docs.levels[1].prompt = 'Insert a new ' + (nouns.item || 'record') + ' into the `' + d2Col + '` collection. Drag the missing pieces.';
     docs.levels[1].why = 'MongoDB makes it natural to capture new ' + (nouns.itemPlural || 'records') + ' as JSON-shaped events, products, assets, or cases while preserving room for industry-specific fields.';
   }
 
@@ -740,7 +845,7 @@ function createIndustryWorlds(profile) {
     agg.levels[0].why = 'The aggregation pipeline is MongoDB\'s in-database transformation engine: filter, group, rank, and reshape ' + profile.name + ' data without exporting it to a separate ETL tier.';
   }
   if (!levelOverrides['a3']) {
-    agg.levels[2].prompt = 'Attach each ' + (nouns.transaction || 'event') + ' to its ' + (nouns.profile || 'profile') + ' record, then keep only the useful summary.';
+    agg.levels[2].prompt = 'Attach each ' + (nouns.transaction || 'event') + ' to its ' + (nouns.profile || 'profile') + ' record, then keep only the fields the app needs.';
     agg.levels[2].why = 'MongoDB supports embedding when data is accessed together and $lookup when independent entities need to meet at query time — a practical fit for ' + profile.name + '.';
   }
 
@@ -854,3 +959,5 @@ registerMongoLingoIndustry({
 window.WORLDS = WORLDS;
 window.HINTS  = HINTS;
 window.LEVEL_HINTS = LEVEL_HINTS;
+window.LEVEL_DOCS = LEVEL_DOCS;
+window.WORLD_SKILL_BADGES = WORLD_SKILL_BADGES;

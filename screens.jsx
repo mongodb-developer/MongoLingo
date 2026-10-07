@@ -151,7 +151,7 @@ function PathCard({ selected, title, badge, description, children, onClick }) {
 /* ============================================================
  * Home / world map
  * ============================================================ */
-function HomeScreen({ progress, setView, totalXp, debugUnlockAll = false, industryId, setIndustryId, profile, onChangeAssignment }) {
+function HomeScreen({ progress, setView, totalXp, debugUnlockAll = false, industryId, setIndustryId, profile, onChangeAssignment, onShowSkillBadges }) {
   const industries = window.MONGOLINGO_INDUSTRIES || {};
   const currentPack = industries[industryId] || industries.general || {};
   return (
@@ -187,6 +187,8 @@ function HomeScreen({ progress, setView, totalXp, debugUnlockAll = false, indust
           const cleared = w.levels.filter(l => progress[`${w.id}:${l.id}`]?.done).length;
           const challengeUnlocked = debugUnlockAll || (!worldLocked && cleared === w.levels.length);
           const leaves = w.levels.reduce((a, l) => a + (progress[`${w.id}:${l.id}`]?.leaf ? 1 : 0), 0);
+          const hasSkillBadges = !!(window.WORLD_SKILL_BADGES && window.WORLD_SKILL_BADGES[w.id]?.length);
+          const showBadgesLink = onShowSkillBadges && hasSkillBadges && cleared === w.levels.length;
 
           return (
             <React.Fragment key={w.id}>
@@ -201,6 +203,11 @@ function HomeScreen({ progress, setView, totalXp, debugUnlockAll = false, indust
                   </div>
                   <span>{cleared}/{w.levels.length} levels · {leaves} 🌿</span>
                 </div>
+                {showBadgesLink && (
+                  <button className="ml-trail-banner__badges" onClick={() => onShowSkillBadges(w.id)}>
+                    ✦ Skill Badges for this world
+                  </button>
+                )}
               </div>
 
               {w.levels.map((l, li) => {
@@ -373,6 +380,7 @@ function LevelScreen({ worldId, levelId, setView, onComplete, onMistake, progres
   const cleared = world.levels.filter(l => progress[`${world.id}:${l.id}`]?.done).length;
   const progressPct = ((levelIdx + (resultBanner?.correct ? 1 : 0)) / world.levels.length) * 100;
   const levelHints = getLevelHints(level);
+  const levelDocs = level.docs || (window.LEVEL_DOCS && window.LEVEL_DOCS[level.id]) || [];
   const revealedHints = levelHints.slice(0, hintsUsed);
   const hasMoreHints = hintsUsed < levelHints.length;
 
@@ -409,7 +417,7 @@ function LevelScreen({ worldId, levelId, setView, onComplete, onMistake, progres
         <div className="ml-pane">
           <div className="ml-pane__label">L{levelIdx + 1} · {level.kind}</div>
           <h2 className="ml-prompt">{level.title}</h2>
-          <p className="ml-prompt-sub">{level.prompt}</p>
+          <p className="ml-prompt-sub"><ConceptBody text={level.prompt} /></p>
           {level.sub && (
             <p style={{ color: 'var(--ml-text-faint)', fontSize: 12.5, marginTop: -10, marginBottom: 18 }}>
               {level.sub}
@@ -425,6 +433,14 @@ function LevelScreen({ worldId, levelId, setView, onComplete, onMistake, progres
 
           <ConceptCard>
             <ConceptBody text={level.why} />
+            {levelDocs.length > 0 && (
+              <div className="ml-concept__docs">
+                <span>Learn more:</span>
+                {levelDocs.map(d => (
+                  <a key={d.url + d.label} href={d.url} target="_blank" rel="noopener noreferrer">{d.label} ↗</a>
+                ))}
+              </div>
+            )}
           </ConceptCard>
 
           {/* AHA moment — revealed after correct answer */}

@@ -509,10 +509,10 @@ function IndexExercise({ level, onResult, onState }) {
     setFeedback(correct ? {
       state: 'correct',
       title: 'explain() shows IXSCAN.',
-      message: 'No more COLLSCANs. Your reads got fast.'
+      message: 'IXSCAN means the query used an index. No more COLLSCANs (full collection scans), so reads got fast.'
     } : {
       state: 'wrong',
-      title: 'One of those is a COLLSCAN waiting to happen.',
+      title: 'One of those is a COLLSCAN (full collection scan) waiting to happen.',
       message: 'Low-cardinality bool fields rarely pay back the write cost. Combine filter+sort fields into a compound index.'
     });
     onResult && onResult({ correct, perfect: correct && perfect });
@@ -734,17 +734,99 @@ function ReorderPreview({ level, order, stageMap }) {
   if (!inOrder) return <div className="ml-empty">Pipeline isn't in order yet — preview waiting.</div>;
   const pipelineText = level.stages.map(s => s.code).join('\n');
   const collection = inferCollectionFromText(pipelineText, level);
+  const solved = <SolvedQuery level={level} />;
+  // Index-field reorder (ESR): the "result" is the index itself plus a plan summary.
+  if (isIndexReorder(level)) {
+    return (
+      <>
+        {solved}
+        <div className="ml-explain">
+          <div className="ml-explain__col">
+            <h5>Winning plan</h5>
+            <div className="stat">IXSCAN</div>
+            <div className="sub">filter, sort and range all served by one index</div>
+            <div className="ml-explain__gloss">Index scan: MongoDB walks the index instead of reading every document, and returns rows already sorted.</div>
+          </div>
+        </div>
+      </>
+    );
+  }
   const streamPreview = streamPreviewForLevel(level);
   if (streamPreview) {
-    return <FakeDocs docs={streamPreview.docs} note={streamPreview.note} />;
+    return <>{solved}<FakeDocs docs={streamPreview.docs} note={streamPreview.note} /></>;
   }
   if (pipelineText.includes('$vectorSearch')) {
-    return <FakeDocs docs={sampleDocsForLevel(level, collection, 3, { vector: true, rag: true, queryText: pipelineText })} note="3 chunks ready to send to the LLM" />;
+    return <>{solved}<FakeDocs docs={sampleDocsForLevel(level, collection, 3, { vector: true, rag: true, queryText: pipelineText })} note="3 chunks ready to send to the LLM" /></>;
   }
   if (pipelineText.includes('$lookup')) {
-    return <FakeDocs docs={sampleJoinedDocsForLevel(level)} note="joined and projected into the requested shape" />;
+    return <>{solved}<FakeDocs docs={sampleJoinedDocsForLevel(level)} note="joined, then shaped by $project" /></>;
   }
-  return <FakeDocs docs={sampleGroupedDocsForLevel(level, collection)} note="pipeline output matches this challenge" />;
+  return <>{solved}<FakeDocs docs={sampleGroupedDocsForLevel(level, collection)} note="pipeline output matches this challenge" /></>;
+}
+
+/* Reorder levels whose "stages" are compound-index keys (e.g. `status: 1`)
+ * rather than pipeline stages (e.g. `$match: {...}`). */
+function isIndexReorder(level) {
+  return (level.stages || []).every(s => !String(s.code).trim().startsWith('$'));
+}
+
+/* The collection a solved statement runs against. Prefers an explicit
+ * `level.collection`, then a `db.<name>` mention in the level text. For
+ * $lookup pipelines the `from:` collection is the *joined* one, so we fall
+ * back to the subject of "Attach each <thing>" in the prompt instead. */
+function solvedQueryCollection(level) {
+  if (level.collection) return level.collection;
+  const text = `${level.sub || ''} ${level.prompt || ''}`;
+  const direct = text.match(/db\.(\w+)/);
+  if (direct) return direct[1];
+  const each = (level.prompt || '').match(/\beach ([a-z]+(?: [a-z]+)??)(?:'s|\b(?= to| for| with|,|\.))/i);
+  if (each) {
+    const words = each[1].toLowerCase().split(' ');
+    const last = words.pop();
+    const plural = /s$/.test(last) ? last : (/y$/.test(last) ? last.slice(0, -1) + 'ies' : last + 's');
+    return words.concat(plural).map((w, i) => i ? capitalize(w) : w).join('');
+  }
+  return inferCollectionFromText(level.stages.map(s => s.code).join('\n'), level);
+}
+
+/* Full, runnable-looking statement assembled from the correctly ordered
+ * stages, so learners see the whole query they just built. */
+function solvedQueryText(level) {
+  const stages = level.stages || [];
+  if (isIndexReorder(level)) {
+    return `db.${solvedQueryCollection(level)}.createIndex({ ${stages.map(s => s.code).join(', ')} })`;
+  }
+  const body = stages.map(s => `  { ${s.code} }`).join(',\n');
+  if (stages.some(s => String(s.code).startsWith('$source'))) {
+    return `sp.createStreamProcessor("alerts", [\n${body}\n])`;
+  }
+  return `db.${solvedQueryCollection(level)}.aggregate([\n${body}\n])`;
+}
+
+function SolvedQuery({ level }) {
+  return (
+    <div className="ml-solved-query">
+      <div className="ml-solved-query__label">Your complete query</div>
+      <pre><HighlightedCode text={solvedQueryText(level)} /></pre>
+    </div>
+  );
+}
+
+/* Output field names produced by the last $project stage, in order. `_id: 0`
+ * (and any other excluded field) is dropped. Returns [] when there is none. */
+function projectedFieldsFromStages(stages) {
+  const project = [...(stages || [])].reverse().find(s => String(s.code).trim().startsWith('$project'));
+  if (!project) return [];
+  const inner = String(project.code).replace(/^\s*\$project\s*:\s*\{/, '').replace(/\}\s*$/, '');
+  const fields = [];
+  const re = /(\w+)\s*:\s*("[^"]*"|[^,]+)/g;
+  let m;
+  while ((m = re.exec(inner)) !== null) {
+    const value = m[2].trim();
+    if (value === '0' || value === 'false') continue;
+    fields.push(m[1]);
+  }
+  return fields;
 }
 
 function IndexPreview({ level, drops }) {
@@ -760,11 +842,13 @@ function IndexPreview({ level, drops }) {
           <h5>B-tree indexes</h5>
           <div className="stat">IXSCAN</div>
           <div className="sub">{summarizeIndexNeeds(level, ['single', 'compound'])}</div>
+          <div className="ml-explain__gloss">Index scan: MongoDB jumps straight to matching entries in an index instead of reading every document.</div>
         </div>
         <div className="ml-explain__col">
           <h5>Search index</h5>
           <div className="stat">$search</div>
           <div className="sub">{summarizeIndexNeeds(level, ['search'])}</div>
+          <div className="ml-explain__gloss">Full-text queries run against an Atlas Search index, built for relevance-ranked text matching.</div>
         </div>
       </div>
     );
@@ -775,6 +859,7 @@ function IndexPreview({ level, drops }) {
         <h5>Winning plan</h5>
         <div className="stat">COLLSCAN</div>
         <div className="sub">no usable index</div>
+        <div className="ml-explain__gloss">Collection scan: with no usable index, MongoDB reads every document to find matches.</div>
       </div>
       <div className="ml-explain__col" data-bad="true">
         <h5>Docs examined</h5>
@@ -1323,7 +1408,22 @@ function ragPreviewValue(field, doc, idx) {
   return values[field]?.[idx] || `${field} context ${idx + 1}`;
 }
 
+/* Rows shaped like the level's $group stage: `_id` holds sample values of the
+ * grouping key and the accumulator keeps its real name (volume, winRate…).
+ * Falls back to the older prompt-based guess when there's no parsable $group. */
 function sampleGroupedDocsForLevel(level, collection) {
+  const group = (level.stages || []).find(s => String(s.code).trim().startsWith('$group'));
+  const key = group && String(group.code).match(/_id\s*:\s*"\$([\w.]+)"/);
+  const acc = group && String(group.code).match(/(\w+)\s*:\s*\{\s*(\$\w+)\s*:\s*([^}]+)\}/);
+  if (key && acc) {
+    const [, accName, accOp, accArg] = acc;
+    const values = accOp === '$sum' && accArg.trim() === '1' ? [120, 103, 86, 69, 52]
+                 : /rate/i.test(accName) ? [0.61, 0.58, 0.55, 0.53, 0.51]
+                 : accOp === '$avg' ? [68.4, 52.1, 41.7, 33.2, 24.9]
+                 : /hours/i.test(accName) ? [412, 356, 298, 241, 187]
+                 : [48200, 40890, 33580, 26270, 18960];
+    return values.map((v, idx) => ({ _id: joinedSampleValue(key[1].split('.').pop(), idx), [accName]: v }));
+  }
   const prompt = `${level.title || ''} ${level.prompt || ''}`.toLowerCase();
   const metric = /revenue|value|amount|expansion/.test(prompt) ? 'total' : /risk/.test(prompt) ? 'riskScore' : 'count';
   const base = sampleDocsForLevel(level, collection, 5);
@@ -1333,32 +1433,68 @@ function sampleGroupedDocsForLevel(level, collection) {
   }));
 }
 
+/* Sample values for fields that $lookup levels commonly project. Keyed by the
+ * output field name; anything unknown falls back to a type-guessed value. */
+const JOINED_FIELD_SAMPLES = {
+  name:          ['Ada Lovelace', 'Grace Hopper', 'Linus Torvalds'],
+  /* $group keys */
+  customer:      ['Ada L.', 'Grace H.', 'Linus T.', 'Margaret H.', 'Alan T.'],
+  customerId:    ['CUST-1042', 'CUST-0877', 'CUST-1310', 'CUST-0456', 'CUST-0991'],
+  assetId:       ['CNC-14', 'PRESS-07', 'ROBOT-22', 'LATHE-03', 'WELD-11'],
+  accountId:     ['ACC-55120', 'ACC-48211', 'ACC-60937', 'ACC-31877', 'ACC-72004'],
+  sourceIp:      ['203.0.113.42', '198.51.100.7', '192.0.2.199', '203.0.113.8', '198.51.100.61'],
+  department:    ['Cardiology', 'Oncology', 'Orthopedics', 'Neurology', 'Pediatrics'],
+  productId:     ['SKU-TRAIL-PRO', 'SKU-AIR-RUN-X', 'SKU-STORM', 'SKU-ALPINE', 'SKU-TREK-2'],
+  policyType:    ['auto', 'home', 'commercial', 'life', 'travel'],
+  titleId:       ['TTL-2091', 'TTL-1844', 'TTL-1730', 'TTL-1622', 'TTL-1509'],
+  character:     ['Vanguard', 'Wraith', 'Sentinel', 'Echo', 'Talon'],
+  /* $project outputs */
+  txnId:         ['TXN-9042', 'TXN-9043', 'TXN-9044'],
+  amount:        [12840.55, 7300.00, 21990.00],
+  riskTier:      ['high', 'medium', 'high'],
+  company:       ['Ada Labs', 'Turing Systems', 'Hopper Analytics'],
+  ownerName:     ['Grace Hopper', 'Linus Torvalds', 'Ada Lovelace'],
+  healthScore:   [96, 91, 87],
+  orderId:       ['ORD-7821', 'ORD-7822', 'ORD-7823'],
+  productName:   ['Trail Pro Jacket', 'Air Runner X', 'Storm Shell'],
+  qty:           [2, 1, 3],
+  metric:        ['temperature', 'vibration', 'temperature'],
+  value:         [87.4, 12.9, 91.2],
+  location:      ['Plant A · Line 3', 'Plant B · Line 1', 'Plant A · Line 5'],
+  assetType:     ['CNC mill', 'hydraulic press', 'servo arm'],
+  eventId:       ['EVT-5512', 'EVT-5513', 'EVT-5514'],
+  type:          ['failed_login', 'port_scan', 'malware'],
+  criticality:   ['high', 'critical', 'medium'],
+  encounterId:   ['ENC-3301', 'ENC-3302', 'ENC-3303'],
+  allergies:     ['penicillin', 'none', 'latex'],
+  diagnosis:     ['type 2 diabetes', 'hypertension', 'asthma'],
+  eventType:     ['call_drop', 'handover_fail', 'call_drop'],
+  cellId:        ['CELL-0417', 'CELL-0932', 'CELL-0417'],
+  planTier:      ['unlimited', 'family', 'prepaid', 'business', 'student'],
+  claimId:       ['CLM-2201', 'CLM-2202', 'CLM-2203'],
+  estimatedLoss: [18400, 6250, 32700],
+  riskScore:     [82, 47, 91],
+  viewerId:      ['VWR-118', 'VWR-342', 'VWR-509'],
+  genre:         ['documentary', 'thriller', 'comedy'],
+  duration:      [3120, 1845, 2710],
+  matchId:       ['MATCH-7781', 'MATCH-7782', 'MATCH-7783'],
+  rank:          ['diamond', 'gold', 'platinum']
+};
+
+function joinedSampleValue(field, idx) {
+  const known = JOINED_FIELD_SAMPLES[field];
+  if (known) return known[idx % known.length];
+  if (/Id$/.test(field)) return `${field.slice(0, -2).toUpperCase().slice(0, 4)}-${1001 + idx}`;
+  if (/(score|count|qty|total|amount|value|duration|loss)$/i.test(field)) return [84, 57, 92][idx % 3];
+  return `${field} ${idx + 1}`;
+}
+
+/* Rows shaped exactly like the level's final $project, so the preview never
+ * shows fields the learner didn't ask for. */
 function sampleJoinedDocsForLevel(level) {
-  const prompt = `${level.title || ''} ${level.prompt || ''}`.toLowerCase();
-  if (/transaction|txn|risk tier|fraud|customer profile/.test(prompt)) {
-    return [
-      { txnId: 'TXN-9042', amount: 12840.55, riskTier: 'high' },
-      { txnId: 'TXN-9043', amount: 7300.00, riskTier: 'medium' },
-      { txnId: 'TXN-9044', amount: 21990.00, riskTier: 'high' }
-    ];
-  }
-  if (/owner|employee/.test(prompt)) {
-    return [
-      { company: 'Ada Labs', ownerName: 'Grace Hopper', healthScore: 96 },
-      { company: 'Turing Systems', ownerName: 'Linus Torvalds', healthScore: 91 }
-    ];
-  }
-  if (/product/.test(prompt)) {
-    return [
-      { orderId: 'ORD-7821', productName: 'Trail Pro Jacket', qty: 2 },
-      { orderId: 'ORD-7822', productName: 'Air Runner X', qty: 1 }
-    ];
-  }
-  return [
-    { name: 'Ada L.', summary: 'joined profile context' },
-    { name: 'Grace H.', summary: 'joined account context' },
-    { name: 'Linus T.', summary: 'joined activity context' }
-  ];
+  const fields = projectedFieldsFromStages(level.stages);
+  const keys = fields.length ? fields : ['name'];
+  return [0, 1, 2].map(idx => Object.fromEntries(keys.map(k => [k, joinedSampleValue(k, idx)])));
 }
 
 /* Cute fake mongo result rendering. */

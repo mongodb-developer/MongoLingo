@@ -1210,12 +1210,49 @@ code, pre, .mono { font-family: var(--ml-font-mono); }
   display: none;
 }
 .ml-concept[data-open="true"] .ml-concept__body { display: block; }
-.ml-concept__body code {
+.ml-concept__body code,
+.ml-prompt-sub code {
   background: rgba(0,237,100,0.08);
   color: var(--lg-spring);
   padding: 1px 5px;
   border-radius: 4px;
   font-size: 12px;
+}
+.ml-concept__docs {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid var(--ml-border-soft);
+  font-size: 12px;
+}
+.ml-concept__docs span { color: var(--ml-text-faint); }
+.ml-concept__docs a { color: var(--lg-spring); text-decoration: none; font-weight: 600; }
+.ml-concept__docs a:hover { text-decoration: underline; }
+
+/* Plain-language gloss under explain() jargon (IXSCAN / COLLSCAN) */
+.ml-explain__gloss {
+  margin-top: 6px;
+  color: var(--ml-text-faint);
+  font-size: 11px; line-height: 1.4;
+}
+
+/* Full statement assembled from a solved reorder exercise */
+.ml-solved-query { margin-bottom: 12px; }
+.ml-solved-query__label {
+  margin-bottom: 6px;
+  color: var(--ml-text-faint);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.ml-solved-query pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--ml-border-soft);
+  border-radius: var(--ml-radius-sm);
+  font-family: var(--ml-font-mono);
+  font-size: 12px; line-height: 1.55;
+  white-space: pre;
 }
 
 /* ---------- Feedback footer ---------- */
@@ -1495,6 +1532,107 @@ code, pre, .mono { font-family: var(--ml-font-mono); }
   font-weight: 600;
   font-size: 14px;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- World completion Skill Badges ---------- */
+.ml-skill-badges {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(0,30,43,0.72);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  animation: ml-fade-in 200ms var(--ml-ease);
+}
+.ml-skill-badges__panel {
+  width: min(100%, 560px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 32px;
+  text-align: center;
+  background: var(--ml-bg-3);
+  border: 1px solid var(--ml-border-green);
+  border-radius: var(--ml-radius-xl);
+  box-shadow: 0 24px 48px -8px rgba(0,0,0,0.55), 0 0 0 4px rgba(0,237,100,0.10);
+}
+.ml-skill-badges__icon {
+  width: 64px; height: 64px;
+  margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,237,100,0.10);
+  border: 1px solid var(--ml-border-green);
+  border-radius: 50%;
+}
+.ml-skill-badges__eyebrow {
+  margin-bottom: 6px;
+  color: var(--lg-spring);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.18em;
+}
+.ml-skill-badges h2 {
+  margin: 0 0 8px;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 28px; font-weight: 500;
+  letter-spacing: -0.015em;
+}
+.ml-skill-badges p { margin: 0 0 20px; color: var(--ml-text-dim); font-size: 14px; }
+.ml-skill-badges__list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 22px;
+  text-align: left;
+}
+.ml-skill-badges__link {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 14px;
+  color: var(--ml-text);
+  background: rgba(255,255,255,0.035);
+  border: 1px solid var(--ml-border-soft);
+  border-radius: var(--ml-radius-sm);
+  font-size: 13px; font-weight: 600;
+  text-decoration: none;
+  transition: border-color 150ms var(--ml-ease), background 150ms var(--ml-ease), color 150ms var(--ml-ease);
+}
+.ml-skill-badges__link:hover { color: var(--lg-spring); background: rgba(0,237,100,0.08); border-color: var(--ml-border-green); }
+.ml-skill-badges__link:focus-visible { outline: 2px solid var(--lg-spring); outline-offset: 2px; }
+.ml-skill-badges__link > span:last-child { color: var(--lg-spring); font-size: 16px; }
+.ml-skill-badges__title { display: flex; flex-direction: column; gap: 2px; }
+.ml-skill-badges__title small {
+  color: var(--ml-text-dim);
+  font-size: 10px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.ml-skill-badges__xp {
+  display: inline-block;
+  margin: -6px 0 20px;
+  padding: 4px 12px;
+  color: var(--lg-spring);
+  background: rgba(0,237,100,0.10);
+  border: 1px solid var(--ml-border-green);
+  border-radius: 999px;
+  font-size: 13px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Re-open a completed world's Skill Badges from its map banner */
+.ml-trail-banner__badges {
+  margin-top: 14px;
+  padding: 6px 14px;
+  color: var(--lg-spring);
+  background: rgba(0,237,100,0.08);
+  border: 1px solid var(--ml-border-green);
+  border-radius: 999px;
+  font: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms var(--ml-ease);
+}
+.ml-trail-banner__badges:hover { background: rgba(0,237,100,0.16); }
+.ml-trail-banner__badges:focus-visible { outline: 2px solid var(--lg-spring); outline-offset: 2px; }
+
+@media (max-width: 540px) {
+  .ml-skill-badges { padding: 12px; }
+  .ml-skill-badges__panel { max-height: calc(100vh - 24px); padding: 24px 18px; }
+  .ml-skill-badges h2 { font-size: 25px; }
 }
 
 /* Confetti */

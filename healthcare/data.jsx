@@ -170,6 +170,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
 
     /* ===== WORLD 3: Aggregation Pipeline ===== */
     a1: {
+      collection: 'encounters', // shown in the solved-query preview
       title: 'Readmission rates by department', kind: 'reorder',
       prompt: 'Compute 30-day readmission count per department in 2024 — re-order the stages.',
       sub: 'Filter to 2024 readmissions, group by department, sort by count, limit to worst.',
@@ -203,6 +204,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     a3: {
+      collection: 'encounters', // shown in the solved-query preview
       title: '$lookup — enrich encounters with patient info', kind: 'reorder',
       prompt: 'Attach patient demographics to each encounter, then extract allergies.',
       sub: '$lookup joins patient data, $unwind flattens, $project picks relevant fields.',
@@ -263,9 +265,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.encounters.find({ status: "admitted", lengthOfStay: { $gt: 7 } }).sort({ admitDate: -1 })',
       why: 'ESR in healthcare: equality (status) narrows to admitted patients, sort (admitDate) delivers results chronologically, range (lengthOfStay) scans only long-stay encounters.',
       stages: [
-        { id: 'e', code: 'status: 1',        sub: 'Equality — { status: "admitted" }', correct: 0 },
-        { id: 's', code: 'admitDate: -1',     sub: 'Sort — .sort({ admitDate: -1 })', correct: 1 },
-        { id: 'r', code: 'lengthOfStay: 1',   sub: 'Range — { $gt: 7 }', correct: 2 }
+        { id: 'e', code: 'status: 1',        sub: 'filter: { status: "admitted" }', correct: 0 },
+        { id: 's', code: 'admitDate: -1',     sub: '.sort({ admitDate: -1 })', correct: 1 },
+        { id: 'r', code: 'lengthOfStay: 1',   sub: 'filter: { lengthOfStay: { $gt: 7 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -373,6 +375,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     v4: {
+      collection: 'protocols', // shown in the solved-query preview
       title: 'RAG — clinical copilot', kind: 'reorder',
       prompt: 'Build a RAG pipeline for a clinical copilot: scope to hospital, retrieve semantically, trim for the LLM.',
       sub: 'Vector search scoped to hospital → drop weak matches → project only what the LLM needs.',

@@ -145,6 +145,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       choices: { op: { options: ['$gt', '$gte', '$eq', '>='], answer: '$gt' } }
     },
     a1: {
+      collection: 'matchEvents', // shown in the solved-query preview
       title: 'Win rate by character', kind: 'reorder',
       prompt: 'Compute average win rate per character in ranked matches — re-order the stages.',
       sub: 'Filter to ranked, group by character, sort by win rate, limit to top picks.',
@@ -166,6 +167,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       choices: { id: { options: ['0', '1', 'false', 'null'], answer: '0' }, one: { options: ['1', '0', 'true', '"yes"'], answer: '1' }, one2: { options: ['1', '0', '"$mmr"', 'yes'], answer: '1' } }
     },
     a3: {
+      collection: 'matchEvents', // shown in the solved-query preview
       title: '$lookup — enrich matches with player info', kind: 'reorder',
       prompt: 'Attach player rank to each match event for balance analysis.',
       sub: '$lookup joins player data, $unwind flattens, $project picks fields.',
@@ -214,9 +216,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.players.find({ online: true, mmr: { $gt: 2000 } }).sort({ queuedAt: 1 })',
       why: 'ESR in gaming: equality (online) narrows to available players, sort (queuedAt) prioritizes longest-waiting, range (mmr) scans only the skill bracket.',
       stages: [
-        { id: 'e', code: 'online: 1',   sub: 'Equality — { online: true }', correct: 0 },
-        { id: 's', code: 'queuedAt: 1', sub: 'Sort — .sort({ queuedAt: 1 })', correct: 1 },
-        { id: 'r', code: 'mmr: 1',      sub: 'Range — { $gt: 2000 }', correct: 2 }
+        { id: 'e', code: 'online: 1',   sub: 'filter: { online: true }', correct: 0 },
+        { id: 's', code: 'queuedAt: 1', sub: '.sort({ queuedAt: 1 })', correct: 1 },
+        { id: 'r', code: 'mmr: 1',      sub: 'filter: { mmr: { $gt: 2000 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -269,6 +271,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       choices: { col: { options: ['"matchEvents"', 'matchEvents', 'MatchEvents', '*'], answer: '"matchEvents"' }, evt: { options: ['"insert"', '"create"', '"write"', '"new"'], answer: '"insert"' }, fn: { options: ['"checkAntiCheat"', 'checkAntiCheat', 'fn()', 'detect()'], answer: '"checkAntiCheat"' } }
     },
     v4: {
+      collection: 'rules', // shown in the solved-query preview
       title: 'RAG — game master copilot', kind: 'reorder',
       prompt: 'Build a RAG pipeline for a GM copilot: scope to game, retrieve semantically, trim for the LLM.',
       sub: 'Vector search scoped to game → drop weak matches → project for the LLM.',

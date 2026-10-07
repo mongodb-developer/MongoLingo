@@ -170,6 +170,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
 
     /* ===== WORLD 3: Aggregation Pipeline ===== */
     a1: {
+      collection: 'claims', // shown in the solved-query preview
       title: 'Loss ratio by product line', kind: 'reorder',
       prompt: 'Compute total claim payouts per policy type in 2024 — re-order the stages.',
       sub: 'Filter to 2024 settled claims, group by type, sort by payout, limit to top lines.',
@@ -203,6 +204,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     a3: {
+      collection: 'claims', // shown in the solved-query preview
       title: '$lookup — enrich claims with policyholder', kind: 'reorder',
       prompt: 'Attach policyholder info to each claim, then extract the risk score.',
       sub: '$lookup joins policyholder data, $unwind flattens, $project picks relevant fields.',
@@ -263,9 +265,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.claims.find({ status: "open", estimatedLoss: { $gt: 10000 } }).sort({ filedAt: -1 })',
       why: 'ESR in insurance: equality (status) narrows to open claims, sort (filedAt) delivers results chronologically for the queue, range (estimatedLoss) scans only high-value claims.',
       stages: [
-        { id: 'e', code: 'status: 1',        sub: 'Equality — { status: "open" }', correct: 0 },
-        { id: 's', code: 'filedAt: -1',       sub: 'Sort — .sort({ filedAt: -1 })', correct: 1 },
-        { id: 'r', code: 'estimatedLoss: 1',  sub: 'Range — { $gt: 10000 }', correct: 2 }
+        { id: 'e', code: 'status: 1',        sub: 'filter: { status: "open" }', correct: 0 },
+        { id: 's', code: 'filedAt: -1',       sub: '.sort({ filedAt: -1 })', correct: 1 },
+        { id: 'r', code: 'estimatedLoss: 1',  sub: 'filter: { estimatedLoss: { $gt: 10000 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -373,6 +375,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     v4: {
+      collection: 'guidelines', // shown in the solved-query preview
       title: 'RAG — underwriting copilot', kind: 'reorder',
       prompt: 'Build a RAG pipeline for an underwriting copilot: scope to insurer, retrieve semantically, trim for the LLM.',
       sub: 'Vector search scoped to insurer → drop weak matches → project only what the LLM needs.',

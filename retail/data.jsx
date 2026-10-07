@@ -171,6 +171,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
 
     /* ===== WORLD 3: Aggregation Pipeline ===== */
     a1: {
+      collection: 'orderLines', // shown in the solved-query preview
       title: 'Best-sellers by revenue', kind: 'reorder',
       prompt: 'Rank products by total revenue in 2024 — re-order the pipeline stages.',
       sub: 'Filter to 2024 orders, group by product, sort by revenue, limit to top 10.',
@@ -204,6 +205,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     a3: {
+      collection: 'orderLines', // shown in the solved-query preview
       title: '$lookup — enrich orders with product info', kind: 'reorder',
       prompt: 'Attach product details to each order line, then show just the product name.',
       sub: '$lookup joins products, $unwind flattens, $project picks fields.',
@@ -264,9 +266,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.products.find({ inStock: true, price: { $lt: 100 } }).sort({ rating: -1 })',
       why: 'ESR in retail: equality (inStock) narrows to available items, sort (rating) delivers results pre-ordered for display, range (price) scans only the relevant price bucket.',
       stages: [
-        { id: 'e', code: 'inStock: 1',  sub: 'Equality — { inStock: true }', correct: 0 },
-        { id: 's', code: 'rating: -1',  sub: 'Sort — .sort({ rating: -1 })', correct: 1 },
-        { id: 'r', code: 'price: 1',    sub: 'Range — { $lt: 100 }', correct: 2 }
+        { id: 'e', code: 'inStock: 1',  sub: 'filter: { inStock: true }', correct: 0 },
+        { id: 's', code: 'rating: -1',  sub: '.sort({ rating: -1 })', correct: 1 },
+        { id: 'r', code: 'price: 1',    sub: 'filter: { price: { $lt: 100 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -374,6 +376,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     v4: {
+      collection: 'products', // shown in the solved-query preview
       title: 'RAG — shopping assistant', kind: 'reorder',
       prompt: 'Build a RAG pipeline for an AI shopping assistant: scope to store, retrieve semantically, trim for the LLM.',
       sub: 'Vector search scoped to store → drop low-confidence matches → project only what the LLM needs.',

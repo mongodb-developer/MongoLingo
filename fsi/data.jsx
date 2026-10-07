@@ -170,6 +170,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
 
     /* ===== WORLD 3: Aggregation Pipeline ===== */
     a1: {
+      collection: 'transactions', // shown in the solved-query preview
       title: 'Transaction volume by account', kind: 'reorder',
       prompt: 'Compute total transaction volume per account in Q4 2024 — re-order the stages.',
       sub: 'Filter to Q4, group by account, sort by volume, then limit to top spenders.',
@@ -203,6 +204,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     a3: {
+      collection: 'transactions', // shown in the solved-query preview
       title: '$lookup — enrich transactions with customer', kind: 'reorder',
       prompt: 'Attach each transaction\'s customer profile, then extract just the risk tier.',
       sub: '$lookup joins customer data, $unwind flattens it, $project picks the fields.',
@@ -263,9 +265,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.transactions.find({ status: "settled", amount: { $gt: 5000 } }).sort({ date: -1 })',
       why: 'ESR in banking: index the equality field (status) first for the tightest filter, then the sort key (date) so results come pre-ordered, then the range field (amount) which scans a sub-range.',
       stages: [
-        { id: 'e', code: 'status: 1',  sub: 'Equality — { status: "settled" }', correct: 0 },
-        { id: 's', code: 'date: -1',   sub: 'Sort — .sort({ date: -1 })', correct: 1 },
-        { id: 'r', code: 'amount: 1',  sub: 'Range — { $gt: 5000 }', correct: 2 }
+        { id: 'e', code: 'status: 1',  sub: 'filter: { status: "settled" }', correct: 0 },
+        { id: 's', code: 'date: -1',   sub: '.sort({ date: -1 })', correct: 1 },
+        { id: 'r', code: 'amount: 1',  sub: 'filter: { amount: { $gt: 5000 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -373,6 +375,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     v4: {
+      collection: 'regulations', // shown in the solved-query preview
       title: 'RAG — compliance copilot', kind: 'reorder',
       prompt: 'Build a RAG pipeline: scope to the bank\'s regulations, retrieve semantically, trim for the LLM.',
       sub: 'Vector search with tenant pre-filter → drop weak matches → project only what the compliance LLM needs.',

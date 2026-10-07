@@ -42,7 +42,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     },
     d2: {
       title: 'insertOne() — log a security event', kind: 'blocks',
-      prompt: 'Record a failed login event into the security events collection.',
+      prompt: 'Record a failed login event into the `securityEvents` collection.',
       sub: 'Each security event becomes an immutable document for investigation and correlation.',
       why: 'Security events must be captured immediately and immutably for forensics. `insertOne()` records the event type, source, and severity in one write — building the timeline investigators reconstruct during incidents.',
       snippet: [
@@ -169,6 +169,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
 
     /* ===== WORLD 3: Aggregation Pipeline ===== */
     a1: {
+      collection: 'securityEvents', // shown in the solved-query preview
       title: 'Attack frequency by source IP', kind: 'reorder',
       prompt: 'Count attack events per source IP in the last 24h — re-order the stages.',
       sub: 'Filter recent events, group by source, sort by count, limit to top offenders.',
@@ -202,6 +203,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     a3: {
+      collection: 'securityEvents', // shown in the solved-query preview
       title: '$lookup — enrich events with asset context', kind: 'reorder',
       prompt: 'Attach the affected asset\'s criticality to each event, then extract for triage.',
       sub: '$lookup joins asset data, $unwind flattens, $project picks triage fields.',
@@ -262,9 +264,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.securityEvents.find({ type: "attack", riskScore: { $gt: 70 } }).sort({ timestamp: -1 })',
       why: 'ESR in security: equality (type) narrows to attacks, sort (timestamp) delivers results chronologically for investigation timelines, range (riskScore) scans only high-scoring events.',
       stages: [
-        { id: 'e', code: 'type: 1',       sub: 'Equality — { type: "attack" }', correct: 0 },
-        { id: 's', code: 'timestamp: -1',  sub: 'Sort — .sort({ timestamp: -1 })', correct: 1 },
-        { id: 'r', code: 'riskScore: 1',   sub: 'Range — { $gt: 70 }', correct: 2 }
+        { id: 'e', code: 'type: 1',       sub: 'filter: { type: "attack" }', correct: 0 },
+        { id: 's', code: 'timestamp: -1',  sub: '.sort({ timestamp: -1 })', correct: 1 },
+        { id: 'r', code: 'riskScore: 1',   sub: 'filter: { riskScore: { $gt: 70 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -372,6 +374,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     v4: {
+      collection: 'runbooks', // shown in the solved-query preview
       title: 'RAG — SOC copilot', kind: 'reorder',
       prompt: 'Build a RAG pipeline for a SOC copilot: scope to org, retrieve semantically, trim for the LLM.',
       sub: 'Vector search scoped to org → drop weak matches → project only what the LLM needs.',

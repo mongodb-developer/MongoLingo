@@ -146,6 +146,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       choices: { op: { options: ['$gt', '$gte', '$eq', '>='], answer: '$gt' } }
     },
     a1: {
+      collection: 'maintenanceEvents', // shown in the solved-query preview
       title: 'Downtime hours by asset', kind: 'reorder',
       prompt: 'Compute total downtime hours per asset in 2024 — re-order the stages.',
       sub: 'Filter to 2024 downtime events, group by asset, sort by hours, limit to worst.',
@@ -167,6 +168,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       choices: { id: { options: ['0', '1', 'false', 'null'], answer: '0' }, one: { options: ['1', '0', 'true', '"yes"'], answer: '1' }, one2: { options: ['1', '0', '"$lastMaintenance"', 'yes'], answer: '1' } }
     },
     a3: {
+      collection: 'sensorEvents', // shown in the solved-query preview
       title: '$lookup — enrich events with asset context', kind: 'reorder',
       prompt: 'Attach asset location and type to each sensor event for spatial analysis.',
       sub: '$lookup joins asset data, $unwind flattens, $project picks analysis fields.',
@@ -215,9 +217,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.sensorEvents.find({ metric: "temperature", value: { $gt: 80 } }).sort({ timestamp: -1 })',
       why: 'ESR in IoT: equality (metric) narrows to temperature readings, sort (timestamp) delivers chronological order, range (value) scans only above-threshold readings.',
       stages: [
-        { id: 'e', code: 'metric: 1',     sub: 'Equality — { metric: "temperature" }', correct: 0 },
-        { id: 's', code: 'timestamp: -1',  sub: 'Sort — .sort({ timestamp: -1 })', correct: 1 },
-        { id: 'r', code: 'value: 1',       sub: 'Range — { $gt: 80 }', correct: 2 }
+        { id: 'e', code: 'metric: 1',     sub: 'filter: { metric: "temperature" }', correct: 0 },
+        { id: 's', code: 'timestamp: -1',  sub: '.sort({ timestamp: -1 })', correct: 1 },
+        { id: 'r', code: 'value: 1',       sub: 'filter: { value: { $gt: 80 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -270,6 +272,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       choices: { col: { options: ['"sensorEvents"', 'sensorEvents', 'SensorEvents', '*'], answer: '"sensorEvents"' }, evt: { options: ['"insert"', '"create"', '"write"', '"new"'], answer: '"insert"' }, fn: { options: ['"alertMaintenance"', 'alertMaintenance', 'fn()', 'alert()'], answer: '"alertMaintenance"' } }
     },
     v4: {
+      collection: 'maintenanceDocs', // shown in the solved-query preview
       title: 'RAG — maintenance copilot', kind: 'reorder',
       prompt: 'Build a RAG pipeline for a maintenance copilot: scope to plant, retrieve semantically, trim for the LLM.',
       sub: 'Vector search scoped to plant → drop weak matches → project for the LLM.',

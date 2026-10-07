@@ -42,7 +42,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     },
     d2: {
       title: 'insertOne() — log a network event', kind: 'blocks',
-      prompt: 'Record a call drop event into the network events collection.',
+      prompt: 'Record a call drop event into the `networkEvents` collection.',
       sub: 'Each network event becomes an immutable document for quality analysis.',
       why: 'Network events (CDRs, handovers, drops) must be ingested at massive scale. `insertOne()` captures each event atomically with full context for downstream quality analysis and churn prediction.',
       snippet: [
@@ -170,6 +170,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
 
     /* ===== WORLD 3: Aggregation Pipeline ===== */
     a1: {
+      collection: 'billingRecords', // shown in the solved-query preview
       title: 'ARPU by plan tier', kind: 'reorder',
       collection: 'billingRecords',
       prompt: 'Compute average revenue per user by plan tier in Q4 — re-order the stages.',
@@ -204,6 +205,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     a3: {
+      collection: 'networkEvents', // shown in the solved-query preview
       title: '$lookup — enrich events with subscriber info', kind: 'reorder',
       prompt: 'Attach subscriber plan details to each network event for quality correlation.',
       sub: '$lookup joins subscriber data, $unwind flattens, $project picks analysis fields.',
@@ -264,9 +266,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.networkEvents.find({ type: "call_drop", impactScore: { $gt: 8 } }).sort({ eventTime: -1 })',
       why: 'ESR in telecom: equality (type) narrows to drops first, sort (eventTime) then delivers results chronologically for the NOC timeline, and range (impactScore) scans only high-impact events. Equality fields must precede range fields so MongoDB can preserve the requested sort while scanning the bounded index range efficiently.',
       stages: [
-        { id: 'e', code: 'type: 1',        sub: 'Equality — { type: "call_drop" }', correct: 0 },
-        { id: 's', code: 'eventTime: -1',   sub: 'Sort — .sort({ eventTime: -1 })', correct: 1 },
-        { id: 'r', code: 'impactScore: 1',  sub: 'Range — { $gt: 8 }', correct: 2 }
+        { id: 'e', code: 'type: 1',        sub: 'filter: { type: "call_drop" }', correct: 0 },
+        { id: 's', code: 'eventTime: -1',   sub: '.sort({ eventTime: -1 })', correct: 1 },
+        { id: 'r', code: 'impactScore: 1',  sub: 'filter: { impactScore: { $gt: 8 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -374,6 +376,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     v4: {
+      collection: 'kbArticles', // shown in the solved-query preview
       title: 'RAG — support copilot', kind: 'reorder',
       prompt: 'Build a RAG pipeline for a support copilot: scope to carrier, retrieve semantically, trim for the LLM.',
       sub: 'Vector search scoped to carrier → drop weak matches → project only what the LLM needs.',

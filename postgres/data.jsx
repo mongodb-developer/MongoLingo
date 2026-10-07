@@ -60,7 +60,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
     },
     d2: {
       title: 'insertOne() — no migration wait', kind: 'blocks',
-      prompt: 'Launch a new product feature by inserting a document with a new optional field.',
+      prompt: 'Launch a new product feature by inserting a document with a new optional field into the `products` collection.',
       sub: 'MongoDB accepts evolving document shapes while you can still add validation where it matters.',
       why: 'A relational design may require ALTER TABLE, backfills, nullable columns, or separate extension tables for every product variation. MongoDB lets new attributes travel with the document as the application evolves.',
       snippet: [
@@ -188,6 +188,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
 
     /* ===== WORLD 3: Aggregation vs Join-Heavy ETL ===== */
     a1: {
+      collection: 'invoices', // shown in the solved-query preview
       title: 'Pipeline an app dashboard', kind: 'reorder',
       prompt: 'Rank enterprise customers by 2024 expansion value — order the pipeline.',
       sub: 'Filter early, group, sort, then limit.',
@@ -221,6 +222,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     a3: {
+      collection: 'customers', // shown in the solved-query preview
       title: '$lookup when references fit', kind: 'reorder',
       prompt: 'Attach account owner details to each customer summary, then keep a clean response shape.',
       sub: 'MongoDB supports references and joins when entities have independent lifecycles.',
@@ -280,9 +282,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.customers.find({ active: true, healthScore: { $gt: 80 } }).sort({ updatedAt: -1 })',
       why: 'MongoDB compound indexes encode the access pattern: equality narrows, sort returns data in display order, range scans within the narrowed slice.',
       stages: [
-        { id: 'e', code: 'active: 1',      sub: 'Equality — active customers', correct: 0 },
-        { id: 's', code: 'updatedAt: -1',  sub: 'Sort — newest first', correct: 1 },
-        { id: 'r', code: 'healthScore: 1', sub: 'Range — score above 80', correct: 2 }
+        { id: 'e', code: 'active: 1',      sub: 'filter: { active: true }', correct: 0 },
+        { id: 's', code: 'updatedAt: -1',  sub: '.sort({ updatedAt: -1 })', correct: 1 },
+        { id: 'r', code: 'healthScore: 1', sub: 'filter: { healthScore: { $gt: 80 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -390,6 +392,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       }
     },
     v4: {
+      collection: 'documents', // shown in the solved-query preview
       title: 'RAG — hybrid retrieval path', kind: 'reorder',
       prompt: 'Build a RAG pipeline: scope by tenant, retrieve semantically, then trim context for the LLM.',
       sub: 'Vector retrieval with metadata filters keeps AI grounded in authorized operational data.',

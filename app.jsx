@@ -63,6 +63,55 @@ function hasAnyProgress(state) {
   );
 }
 
+function getWorldSkillBadges(worldId) {
+  return (window.WORLD_SKILL_BADGES && window.WORLD_SKILL_BADGES[worldId]) || [];
+}
+
+/* world: { name, skillBadges, xp? } — xp is set only when the modal opens as
+ * the reward for finishing the world, so the earned XP isn't swallowed by the
+ * modal replacing the usual Celebrate toast. Re-opened from the map, it's omitted. */
+function SkillBadgeModal({ world, onClose }) {
+  const closeRef = React.useRef(null);
+  useEffect_(() => {
+    if (!world) return;
+    closeRef.current && closeRef.current.focus();
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [world]);
+
+  if (!world) return null;
+  const justCompleted = world.xp != null;
+  return (
+    <div className="ml-skill-badges" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="ml-skill-badges-title">
+      <div className="ml-skill-badges__panel" onClick={(e) => e.stopPropagation()}>
+        <div className="ml-skill-badges__icon" aria-hidden="true">✦</div>
+        <div className="ml-skill-badges__eyebrow">{justCompleted ? 'WORLD COMPLETE' : 'NEXT STEPS'}</div>
+        <h2 id="ml-skill-badges-title">Keep learning with a Skill Badge</h2>
+        <p>
+          {justCompleted ? <>You finished <b>{world.name}</b>. </> : <>You've completed <b>{world.name}</b>. </>}
+          Deepen what you learned with free MongoDB Skill Badges.
+        </p>
+        {justCompleted && world.xp > 0 && (
+          <div className="ml-skill-badges__xp">+{world.xp} XP</div>
+        )}
+        <div className="ml-skill-badges__list" aria-label={`${world.name} Skill Badges`}>
+          {world.skillBadges.map((badge) => (
+            <a key={badge.title} href={badge.url} target="_blank" rel="noopener noreferrer" className="ml-skill-badges__link">
+              <span className="ml-skill-badges__title">
+                {badge.title}
+                <small>{badge.type || 'Skill Badge'}</small>
+              </span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          ))}
+        </div>
+        <button ref={closeRef} className="ml-btn ml-btn--primary" onClick={onClose}>Back to map</button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [tweaks, setTweak] = useTweaks(/*EDITMODE-BEGIN*/{
     "accent": "#00ED64",
@@ -74,6 +123,7 @@ function App() {
   const [state, setState] = useState_(loadProgress());
   const [view, setView]   = useState_({ name: 'home' });
   const [celebrate, setCelebrate] = useState_(null); // { xp, leaf, perfect }
+  const [skillBadgeWorld, setSkillBadgeWorld] = useState_(null);
   const [unlockAll, setUnlockAll] = useState_(false);
   const [profile, setProfile] = useState_(loadProfile());
   const [industryId, setIndustryId] = useState_(() => {
@@ -106,23 +156,41 @@ function App() {
   }, [tweaks.accent]);
 
   function completeLevel({ worldId, levelId, xp, leaf, clean }) {
+    // Show Skill Badges when this completion is the one that finishes the world
+    // (every level done), regardless of the order levels were cleared in.
+    const world = window.WORLDS.find(w => w.id === worldId);
+    const skillBadges = getWorldSkillBadges(worldId);
+    const wasDone = state.progress[`${worldId}:${levelId}`]?.done;
+    const finishesWorld = !!world && !wasDone && world.levels.every(l =>
+      l.id === levelId || state.progress[`${worldId}:${l.id}`]?.done
+    );
     setState(prev => {
       const key = `${worldId}:${levelId}`;
-      const wasDone = prev.progress[key]?.done;
+      const previouslyDone = prev.progress[key]?.done;
       const next = {
         ...prev,
         progress: {
           ...prev.progress,
           [key]: { done: true, leaf: leaf || prev.progress[key]?.leaf }
         },
-        xp:     prev.xp     + (wasDone ? 0 : xp),
-        streak: clean && !wasDone ? (prev.streak || 0) + 1 : prev.streak || 0,
+        xp:     prev.xp     + (previouslyDone ? 0 : xp),
+        streak: clean && !previouslyDone ? (prev.streak || 0) + 1 : prev.streak || 0,
         leaves: prev.leaves + (leaf && !prev.progress[key]?.leaf ? 1 : 0)
       };
       return next;
     });
-    setCelebrate({ xp, leaf, perfect: leaf });
-    setTimeout(() => setCelebrate(null), 1900);
+    if (finishesWorld && skillBadges.length) {
+      setSkillBadgeWorld({ name: world.name, skillBadges, xp });
+    } else {
+      setCelebrate({ xp, leaf, perfect: leaf });
+      setTimeout(() => setCelebrate(null), 1900);
+    }
+  }
+
+  function showSkillBadges(worldId) {
+    const world = window.WORLDS.find(w => w.id === worldId);
+    const skillBadges = getWorldSkillBadges(worldId);
+    if (world && skillBadges.length) setSkillBadgeWorld({ name: world.name, skillBadges });
   }
 
   const hud = {
@@ -190,7 +258,7 @@ function App() {
       if (!profile.onboardingComplete) {
         screen = <LandingScreen profile={profile} packs={window.MONGOLINGO_INDUSTRIES || {}} onStart={startAssignment} />;
       } else {
-        screen = <HomeScreen progress={state.progress} setView={setView} totalXp={state.xp} debugUnlockAll={debugUnlockAll} industryId={industryId} setIndustryId={setIndustryId} profile={profile} onChangeAssignment={changeAssignment} />;
+        screen = <HomeScreen progress={state.progress} setView={setView} totalXp={state.xp} debugUnlockAll={debugUnlockAll} industryId={industryId} setIndustryId={setIndustryId} profile={profile} onChangeAssignment={changeAssignment} onShowSkillBadges={showSkillBadges} />;
       }
       break;
     case 'level':
@@ -221,7 +289,7 @@ function App() {
       break;
     default:
       screen = profile.onboardingComplete
-        ? <HomeScreen progress={state.progress} setView={setView} totalXp={state.xp} debugUnlockAll={debugUnlockAll} industryId={industryId} setIndustryId={setIndustryId} profile={profile} onChangeAssignment={changeAssignment} />
+        ? <HomeScreen progress={state.progress} setView={setView} totalXp={state.xp} debugUnlockAll={debugUnlockAll} industryId={industryId} setIndustryId={setIndustryId} profile={profile} onChangeAssignment={changeAssignment} onShowSkillBadges={showSkillBadges} />
         : <LandingScreen profile={profile} packs={window.MONGOLINGO_INDUSTRIES || {}} onStart={startAssignment} />;
   }
 
@@ -245,6 +313,10 @@ function App() {
         perfect={!!celebrate?.perfect}
         final={!!celebrate?.final}
         onClose={() => setCelebrate(null)}
+      />
+      <SkillBadgeModal
+        world={skillBadgeWorld}
+        onClose={() => setSkillBadgeWorld(null)}
       />
 
       {/* Tweaks panel */}

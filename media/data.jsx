@@ -149,6 +149,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       choices: { op: { options: ['$gte', '$gt', '$eq', '>='], answer: '$gte' } }
     },
     a1: {
+      collection: 'viewingEvents', // shown in the solved-query preview
       title: 'Top titles by watch hours', kind: 'reorder',
       prompt: 'Rank titles by total watch hours in 2024 — re-order the pipeline stages.',
       sub: 'Filter to 2024 events, group by title, sort by hours, limit to top 10.',
@@ -170,6 +171,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       choices: { id: { options: ['0', '1', 'false', 'null'], answer: '0' }, one: { options: ['1', '0', 'true', '"yes"'], answer: '1' }, one2: { options: ['1', '0', '"$rating"', 'yes'], answer: '1' } }
     },
     a3: {
+      collection: 'viewingEvents', // shown in the solved-query preview
       title: '$lookup — enrich events with title metadata', kind: 'reorder',
       prompt: 'Attach title genre to each viewing event, then extract for analytics.',
       sub: '$lookup joins title data, $unwind flattens, $project picks fields.',
@@ -218,9 +220,9 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       sub: 'For: db.titles.find({ active: true, runtime: { $gt: 90 } }).sort({ rating: -1 })',
       why: 'ESR in media: equality (active) narrows to available titles, sort (rating) delivers results ranked for display, range (runtime) scans only feature-length content.',
       stages: [
-        { id: 'e', code: 'active: 1', sub: 'Equality — { active: true }', correct: 0 },
-        { id: 's', code: 'rating: -1', sub: 'Sort — .sort({ rating: -1 })', correct: 1 },
-        { id: 'r', code: 'runtime: 1', sub: 'Range — { $gt: 90 }', correct: 2 }
+        { id: 'e', code: 'active: 1', sub: 'filter: { active: true }', correct: 0 },
+        { id: 's', code: 'rating: -1', sub: '.sort({ rating: -1 })', correct: 1 },
+        { id: 'r', code: 'runtime: 1', sub: 'filter: { runtime: { $gt: 90 } }', correct: 2 }
       ],
       initial: ['r', 's', 'e']
     },
@@ -273,6 +275,7 @@ registerMongoLingoIndustry(createMongoLingoIndustryPack({
       choices: { col: { options: ['"titles"', 'titles', 'Titles', '*'], answer: '"titles"' }, evt: { options: ['"insert"', '"create"', '"write"', '"new"'], answer: '"insert"' }, fn: { options: ['"notifySubscribers"', 'notifySubscribers', 'fn()', 'notify()'], answer: '"notifySubscribers"' } }
     },
     v4: {
+      collection: 'titles', // shown in the solved-query preview
       title: 'RAG — content copilot', kind: 'reorder',
       prompt: 'Build a RAG pipeline for a content recommendation AI: scope to platform, retrieve semantically, trim for the LLM.',
       sub: 'Vector search scoped to platform → drop weak matches → project for the LLM.',
